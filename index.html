@@ -935,9 +935,23 @@
   .qe-body .pole:first-child { margin-top: 12px; }
   .qe-sub { margin: 4px 0 12px; padding: 12px; border-radius: 14px; background: var(--tile); }
   .qe-sub > .lbl { font-size: .86rem; margin-bottom: 8px; }
-  .qe-sub .pole input, .qe-sub .pole select { background: var(--card); }
+  .qe-sub .pole input, .qe-sub .pole select { background-color: var(--card); }
   .qe-sub .edit-row input { background: var(--card); }
   .predvolby { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
+  .qe-head { flex-wrap: wrap; }
+  .qe-podm-rad { flex: 0 0 100%; order: 3; min-width: 0; margin-top: -4px; padding-left: 46px; }
+  .qe-podm-rad .qe-podm { margin-top: 0; }
+  .qe-podm { display: flex; align-items: center; gap: 5px; width: fit-content; max-width: 100%; margin-top: 5px; padding: 2px 9px 2px 7px; border-radius: 99px; background: var(--accent-l); color: var(--accent); font-size: .76rem; font-weight: 600; }
+  .qe-podm .ic { width: 12px; height: 12px; flex: none; }
+  .qe-podm span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qe-podm.chyba { background: var(--warn-l); color: var(--warn); }
+  .podm { margin-top: 2px; }
+  .podm .switch input:disabled + .sw { opacity: .45; }
+  .podm-box { margin: 2px 0 8px; padding: 12px 12px 2px; border-radius: 14px; background: var(--tile); border-left: 3px solid var(--accent); }
+  .podm-box .pole input, .podm-box .pole select { background-color: var(--card); }
+  .podm-box .varovani { margin: 0 0 12px; }
+  .res-podm { display: flex; gap: 6px; align-items: flex-start; margin: -8px 0 14px; color: var(--muted); font-size: .84rem; font-weight: 600; }
+  .res-podm .ic { width: 14px; height: 14px; flex: none; margin-top: 2px; color: var(--accent); }
   .varovani { margin: 8px 0 0; padding: 9px 12px; border-radius: 12px; background: var(--warn-l); color: var(--warn); font-size: .85rem; font-weight: 600; }
   .typy { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
   .typ-btn { display: flex; gap: 10px; align-items: center; text-align: left; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--tile); color: var(--ink); font: inherit; cursor: pointer; transition: border-color .15s, background .15s, transform .1s; }
@@ -1009,6 +1023,7 @@
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></symbol>
   <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5Z"/><path d="m15 5 4 4"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-vetev" viewBox="0 0 24 24"><path d="m15 10 5 5-5 5"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></symbol>
   <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
   <symbol id="i-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></symbol>
@@ -1692,6 +1707,86 @@
   const aktivniOtazky = () => otazky.filter((q) => q.aktivni !== false);
   const aktivniMozn = (pole) => (pole || []).filter((m) => m.aktivni !== false);
   const odpovidaci = (q) => q.typ !== 'nadpis';
+
+  // ---------- větvení: podmínky zobrazení (stejná logika jako na serveru) ----------
+  const PODMINKY = {
+    ano_ne: ['je'], vyber: ['je'],
+    hvezdy: ['ge', 'le'], smajlik: ['ge', 'le'], skala: ['ge', 'le'], cislo: ['ge', 'le'],
+    text: ['vyplneno', 'nevyplneno'], telefon: ['vyplneno', 'nevyplneno'], datum: ['vyplneno', 'nevyplneno']
+  };
+  const NAZVY_OP = { je: 'je', ge: 'je aspoň (≥)', le: 'je nejvýš (≤)', vyplneno: 'je vyplněná', nevyplneno: 'není vyplněná' };
+
+  function splnenaPodminka(p, t, v) {
+    if (p.op === 'vyplneno') return v !== undefined;
+    if (p.op === 'nevyplneno') return v === undefined;
+    if (v === undefined) return false;
+    if (t.typ === 'ano_ne') return v === (p.h === 'ano');
+    if (t.typ === 'vyber') {
+      if (t.rezim === 'jedna') return v === p.h;
+      if (t.rezim === 'vice') return Array.isArray(v) && v.includes(p.h);
+      return !!(v && v[p.h] > 0);
+    }
+    const x = Number(v);
+    return p.op === 'ge' ? x >= p.h : x <= p.h;
+  }
+
+  // které otázky jsou při daných odpovědích vidět; podmínka smí odkazovat jen na otázku nad sebou,
+  // podmínka u nadpisu platí pro celou sekci až po další nadpis
+  function viditelneOtazky(seznam, data) {
+    const mapa = new Map();
+    const vid = new Set();
+    let sekce = true;
+    seznam.forEach((q) => {
+      if (q.aktivni === false) return;
+      mapa.set(q.id, q);
+      const p = q.podminka;
+      const ok = !p || (vid.has(p.q) && splnenaPodminka(p, mapa.get(p.q), data[p.q]));
+      if (q.typ === 'nadpis') { sekce = ok; if (ok) vid.add(q.id); }
+      else if (ok && sekce) vid.add(q.id);
+    });
+    return vid;
+  }
+
+  // všechny otázky, na kterých závisí zobrazení otázky qid (i přes nadpis sekce a řetězení)
+  function zavislosti(seznam, qid) {
+    const akt = seznam.filter((q) => q.aktivni !== false);
+    const out = new Set();
+    const projdi = (id) => {
+      const i = akt.findIndex((q) => q.id === id);
+      if (i < 0) return;
+      const q = akt[i];
+      if (q.podminka && !out.has(q.podminka.q)) { out.add(q.podminka.q); projdi(q.podminka.q); }
+      if (q.typ !== 'nadpis') {
+        for (let j = i - 1; j >= 0; j--) if (akt[j].typ === 'nadpis') { if (akt[j].podminka) { out.add(akt[j].id); projdi(akt[j].id); } break; }
+      }
+    };
+    projdi(qid);
+    return out;
+  }
+
+  // „z 5“ × „ze 4“ (podle toho, jak se číslo vyslovuje)
+  function predlozkaZ(n) {
+    if (n >= 100 && n < 200) return 'ze';
+    if (n >= 1000 && n < 2000) return 'z';
+    if (n >= 11 && n <= 19) return [13, 14, 16, 17].includes(n) ? 'ze' : 'z';
+    return '3467'.includes(String(n)[0]) ? 'ze' : 'z';
+  }
+
+  // čitelný popis podmínky, např. „Jedeš? = Ano“
+  function textPodminky(p, seznam) {
+    const t = seznam.find((x) => x.id === p.q);
+    if (!t) return 'otázka už neexistuje';
+    const n = t.nazev || 'bez textu';
+    if (p.op === 'vyplneno' || p.op === 'nevyplneno') return n + ' – ' + (p.op === 'vyplneno' ? 'vyplněno' : 'nevyplněno');
+    if (t.typ === 'ano_ne') return n + ' = ' + (p.h === 'ano' ? 'Ano' : 'Ne');
+    if (t.typ === 'vyber') {
+      const m = (t.moznosti || []).find((x) => x.id === p.h);
+      const mn = m ? (m.nazev || 'bez názvu') : '?';
+      return n + (t.rezim === 'jedna' ? ' = ' : ' obsahuje ') + mn;
+    }
+    const h = p.h === null || p.h === undefined || p.h === '' ? '?' : fmt(p.h, 4);
+    return n + ' ' + (p.op === 'ge' ? '≥' : '≤') + ' ' + h + (t.typ === 'hvezdy' ? ' ★' : '');
+  }
 
   function nazevMoznosti(q, id) {
     const m = (q.moznosti || []).concat(q.sloupce || []).find((x) => x.id === id);
@@ -2380,15 +2475,65 @@
     };
   }
 
+  // odpovědi z rozpracovaného formuláře ve stejné podobě, v jaké je kontroluje server
+  function dataProPodminky() {
+    const d = {};
+    aktivniOtazky().forEach((q) => {
+      if (!PODMINKY[q.typ]) return;
+      let v = ocistiHodnotu(q, hodnoty[q.id]);
+      if (v !== undefined && q.typ === 'cislo') {
+        const x = Number(String(v).replace(/\s/g, '').replace(',', '.'));
+        v = isFinite(x) ? x : undefined;
+      }
+      if (typeof v === 'string' && q.typ === 'text') v = v.trim() || undefined;
+      d[q.id] = v;
+    });
+    return d;
+  }
+
+  let viditelne = null;   // Set id otázek, které jsou ve formuláři právě vidět
+  const malPohybu = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: true };
+
+  // plynulé ukázání / schování otázky
+  function ukazBlok(b, ukaz) {
+    if (b._vid === ukaz) return;
+    const poprve = b._vid === undefined;
+    b._vid = ukaz;
+    if (b._anim) { b._anim.cancel(); b._anim = null; }
+    b.style.overflow = '';
+    if (poprve || malPohybu.matches || !b.animate || !b.isConnected) { b.hidden = !ukaz; return; }
+    b.hidden = false;
+    const cs = getComputedStyle(b);
+    const plne = { height: b.offsetHeight + 'px', paddingTop: cs.paddingTop, marginTop: cs.marginTop, opacity: 1 };
+    const nic = { height: '0px', paddingTop: '0px', marginTop: '0px', opacity: 0 };
+    b.style.overflow = 'hidden';
+    b._anim = b.animate(ukaz ? [nic, plne] : [plne, nic], { duration: ukaz ? 260 : 190, easing: ukaz ? 'cubic-bezier(.2,.7,.3,1)' : 'ease-in' });
+    b._anim.onfinish = () => { b._anim = null; b.style.overflow = ''; if (!ukaz) b.hidden = true; };
+  }
+
+  function aktualizujViditelnost() {
+    viditelne = viditelneOtazky(otazky, dataProPodminky());
+    let cislo = 0;
+    document.querySelectorAll('#otazky > .q').forEach((b) => {
+      const vid = viditelne.has(b.dataset.id);
+      if (!vid) chybaOtazky(b.dataset.id, '');
+      ukazBlok(b, vid);
+      const n = b.querySelector('.q-num');
+      if (n && vid) n.textContent = ++cislo;
+    });
+  }
+
   function jeVyplneno(q) {
     if (q.typ === 'poradi') return !!dotknute[q.id];
     return ocistiHodnotu(q, hodnoty[q.id]) !== undefined;
   }
 
   function aktualizujPostup() {
-    const odp = aktivniOtazky().filter(odpovidaci);
+    aktualizujViditelnost();
+    const vse = aktivniOtazky().filter(odpovidaci);
+    const odp = vse.filter((q) => viditelne.has(q.id));
     const p = $('postup');
-    p.hidden = odp.length < 3;
+    p.hidden = vse.length < 3 || !odp.length;
     if (p.hidden) return;
     const hotovo = odp.filter(jeVyplneno).length;
     $('postup-t').textContent = hotovo + ' z ' + odp.length;
@@ -2399,8 +2544,9 @@
   function sber() {
     const data = {};
     const chyby = {};
+    const vid = viditelneOtazky(otazky, dataProPodminky());
     aktivniOtazky().forEach((q) => {
-      if (!odpovidaci(q)) return;
+      if (!odpovidaci(q) || !vid.has(q.id)) return;   // skrytá otázka: nepovinná a neodesílá se
       let v;
       if (q.typ === 'telefon') {
         const h = ocistiHodnotu(q, hodnoty[q.id]);
@@ -2540,12 +2686,30 @@
       .concat(otazky.filter((q) => q.aktivni === false && q.typ !== 'nadpis'));
     const ponechat = new Set();
     let predchozi = null;
+    const akt = aktivniOtazky();
+    const sPodminkou = akt.some((q) => q.podminka);
+    const vidOdp = sPodminkou ? odpovedi.map((o) => viditelneOtazky(otazky, o.data)) : null;
     seznam.forEach((q) => {
       const A = odpovedi.filter((o) => o.data[q.id] !== undefined).map((o) => ({ o: o, v: o.data[q.id] }));
       if (q.aktivni === false && !A.length) return;
       if (q.skryt && !admin && !A.length) return; // skrytá otázka bez vlastních odpovědí
       ponechat.add(q.id);
-      const sig = JSON.stringify([q, vidiJmena, A.map((x) => [x.o.jmeno, x.v]), !!admin]);
+      // podmíněná otázka: komu se ukázala (jde spočítat, jen když vidíme odpovědi na všechny otázky, na kterých závisí)
+      let podm = null;
+      if (sPodminkou && q.aktivni !== false) {
+        const zav = [...zavislosti(otazky, q.id)];
+        if (zav.length && (admin || !zav.some((id) => (otazky.find((x) => x.id === id) || {}).skryt))) {
+          const n = odpovedi.filter((o, i) => o.data[q.id] !== undefined || vidOdp[i].has(q.id)).length;
+          let kdy = '';
+          if (q.podminka) kdy = 'jen když ' + textPodminky(q.podminka, akt);
+          else {
+            const i = akt.indexOf(q);
+            for (let j = i - 1; j >= 0; j--) if (akt[j].typ === 'nadpis') { kdy = 'v sekci „' + akt[j].nazev + '“'; break; }
+          }
+          podm = 'Ukázala se ' + n + ' ' + predlozkaZ(odpovedi.length) + ' ' + odpovedi.length + ' ' + pl(odpovedi.length, 'člověka', 'lidí', 'lidí') + (kdy ? ' (' + kdy + ')' : '');
+        }
+      }
+      const sig = JSON.stringify([q, vidiJmena, A.map((x) => [x.o.jmeno, x.v]), !!admin, podm]);
       let k = karty.get(q.id);
       if (!k) {
         k = { el: el('section', 'card res'), sig: null };
@@ -2562,6 +2726,7 @@
         if (q.skryt) { const t = el('span', 'tag'); t.append(ik('lock'), document.createTextNode(admin ? 'vidí jen správce' : 'jen tvoje')); h.append(t); }
         tit.append(h, el('span', 'meta', nOdpovedi(A.length)));
         k.el.append(tit);
+        if (podm) { const pp = el('p', 'res-podm'); pp.append(ik('vetev'), el('span', null, podm)); k.el.append(pp); }
         const g = A.length ? graf(q, A) : el('p', 'muted', 'Zatím bez odpovědí.');
         k.el.append(g);
         animuj(k.el);
@@ -3388,6 +3553,7 @@
   function navrhZmenen() { return !!navrh && JSON.stringify(navrh) !== navrhPuvodni; }
   function zmena() {
     $('savebar').hidden = !navrhZmenen();
+    obnovyPodminek.forEach((fn) => fn());
   }
   function nactiNavrh() {
     navrh = novyNavrh();
@@ -3529,6 +3695,7 @@
   function zmenTyp(q, typ) {
     const n = vychoziOtazka(typ);
     const zachovat = { id: q.id, nazev: q.nazev, popis: q.popis, povinna: typ !== 'nadpis' && q.povinna, skryt: typ === 'telefon' ? true : q.skryt };
+    if (q.podminka) zachovat.podminka = q.podminka;
     if (q.moznosti && n.moznosti) zachovat.moznosti = q.moznosti;
     Object.keys(q).forEach((k) => delete q[k]);
     Object.assign(q, n, zachovat);
@@ -3543,9 +3710,12 @@
     return t.nazev;
   }
 
+  const obnovyPodminek = new Map();   // qid -> obnoví štítek podmínky v hlavičce karty
+
   function vykresliEditor() {
     const box = $('ed-otazky');
     box.textContent = '';
+    obnovyPodminek.clear();
     if (!navrh.otazky.length) box.append(el('p', 'muted', 'Formulář je prázdný – přidej otázku nebo vyber šablonu.'));
     navrh.otazky.forEach((q, i) => box.append(editorOtazky(q, i)));
     zmena();
@@ -3572,6 +3742,25 @@
     const b = el('b', q.nazev ? null : 'prazdne', q.nazev || 'Bez textu otázky');
     const sm = el('small', null, (i + 1) + '. ' + popisOtazky(q) + (q.povinna ? ' · povinná' : '') + (q.skryt ? ' · skrytá' : ''));
     tit.append(b, sm);
+    // štítek „↳ jen když …“
+    const stitek = el('span', 'qe-podm');
+    const stitekRad = el('div', 'qe-podm-rad');
+    stitekRad.append(stitek);
+    const obnovStitek = () => {
+      const p = q.podminka;
+      stitekRad.hidden = !p;
+      if (!p) return;
+      const ch = chybaPodminky(q, navrh.otazky);
+      const t = ch ? 'Podmínka: ' + ch : 'jen když ' + textPodminky(p, navrh.otazky);
+      if (stitek.dataset.t === t) return;
+      stitek.dataset.t = t;
+      stitek.className = 'qe-podm' + (ch ? ' chyba' : '');
+      stitek.title = t;
+      stitek.textContent = '';
+      stitek.append(ik(ch ? 'alert' : 'vetev'), el('span', null, t));
+    };
+    obnovStitek();
+    obnovyPodminek.set(q.id, obnovStitek);
     const akce = el('div', 'qe-akce');
     const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
     const nah = tlacitko('ikona mala', ik('up'), stop(() => presunOtazku(i, -1)), 'Posunout nahoru');
@@ -3594,7 +3783,7 @@
     nah.disabled = i === 0;
     dol.disabled = i === navrh.otazky.length - 1;
     akce.append(nah, dol, dup, del);
-    head.append(ico, tit, akce);
+    head.append(ico, tit, akce, stitekRad);
     const prepni = () => { if (otevrena) rozbalene.delete(q.id); else rozbalene.add(q.id); prekresliKartu(q); };
     head.addEventListener('click', prepni);
     head.addEventListener('keydown', (e) => { if (e.target === head && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); prepni(); } });
@@ -3624,11 +3813,114 @@
     if (q.typ !== 'nadpis') {
       body.append(prepinac('Povinná otázka', 'Bez odpovědi nepůjde formulář odeslat.', q.povinna, (v) => { q.povinna = v; obnovHlavu(); }));
       body.append(prepinac('Skrýt ve výsledcích', 'Odpovědi uvidí jen správce (např. telefon nebo poznámka).', q.skryt, (v) => { q.skryt = v; obnovHlavu(); }));
+      body.append(editorPodminky(q, i));
       const pocet = odpovedi.filter((o) => o.data[q.id] !== undefined).length;
       if (pocet) body.append((() => { const v = el('p', 'varovani'); v.append(ik('alert'), document.createTextNode('Na tuhle otázku už ' + pl(pocet, 'odpověděl', 'odpověděli', 'odpovědělo') + ' ' + pocet + ' ' + pl(pocet, 'člověk', 'lidé', 'lidí') + '. Změna typu nebo smazání možností může staré výsledky zkreslit.')); return v; })());
+    } else {
+      body.append(editorPodminky(q, i));
     }
     karta.append(body);
     return karta;
+  }
+
+  // ---------- podmínka zobrazení v kartě otázky ----------
+  function vychoziPodminka(t) {
+    const p = { q: t.id, op: PODMINKY[t.typ][0] };
+    switch (t.typ) {
+      case 'ano_ne': p.h = 'ano'; break;
+      case 'vyber': { const m = aktivniMozn(t.moznosti)[0]; p.h = m ? m.id : ''; break; }
+      case 'hvezdy': p.h = Math.max(1, (t.max || 5) - 1); break;
+      case 'smajlik': p.h = 4; break;
+      case 'skala': p.h = Math.ceil(((t.od || 0) + (t.do || 10)) / 2); break;
+      case 'cislo': p.h = 1; break;
+    }
+    return p;
+  }
+
+  // co je na podmínce špatně ('' = v pořádku)
+  function chybaPodminky(q, seznam) {
+    const p = q.podminka;
+    if (!p) return '';
+    const i = seznam.indexOf(q);
+    const j = seznam.findIndex((t) => t.id === p.q);
+    if (j < 0) return 'otázka, podle které se rozhoduje, byla smazána.';
+    const t = seznam[j];
+    if (j >= i) return '„' + (t.nazev || 'bez textu') + '“ je teď pod touto otázkou – přesuň ji výš.';
+    const ops = PODMINKY[t.typ];
+    if (!ops || !ops.includes(p.op)) return 'otázka „' + (t.nazev || 'bez textu') + '“ změnila typ – nastav podmínku znovu.';
+    switch (t.typ) {
+      case 'ano_ne': if (p.h !== 'ano' && p.h !== 'ne') return 'vyber Ano nebo Ne.'; break;
+      case 'vyber': if (!aktivniMozn(t.moznosti).some((m) => m.id === p.h)) return 'vybraná možnost už neexistuje.'; break;
+      case 'hvezdy': case 'smajlik': case 'skala': {
+        const od = t.typ === 'skala' ? t.od : 1;
+        const doo = t.typ === 'skala' ? t.do : t.typ === 'hvezdy' ? t.max : 5;
+        if (!Number.isInteger(p.h) || p.h < od || p.h > doo) return 'hodnota je mimo rozsah otázky.';
+        break;
+      }
+      case 'cislo': if (p.h === null || p.h === undefined || p.h === '' || !isFinite(Number(p.h))) return 'doplň číslo.'; break;
+    }
+    return '';
+  }
+
+  function editorPodminky(q, i) {
+    const box = el('div', 'podm');
+    const nad = navrh.otazky.slice(0, i).filter((t) => PODMINKY[t.typ]);
+    const sekce = q.typ === 'nadpis';
+    const popis = !nad.length && !q.podminka
+      ? 'Nad ' + (sekce ? 'tímto nadpisem' : 'touto otázkou') + ' zatím není otázka, podle které by šlo rozhodovat.'
+      : sekce ? 'Celá sekce (až po další nadpis) se ukáže jen podle odpovědi na otázku nad ní.'
+        : 'Otázka se ukáže jen podle odpovědi na některou otázku nad ní.';
+    const sw = prepinac('Zobrazit jen když…', popis, !!q.podminka, (v) => {
+      if (v) q.podminka = vychoziPodminka(nad[nad.length - 1]); else delete q.podminka;
+      prekresliKartu(q);
+    });
+    if (!nad.length && !q.podminka) sw.querySelector('input').disabled = true;
+    box.append(sw);
+    const p = q.podminka;
+    if (!p) return box;
+
+    const panel = el('div', 'podm-box');
+    const ch = chybaPodminky(q, navrh.otazky);
+    if (ch) { const v = el('p', 'varovani'); v.append(ik('alert'), document.createTextNode('Podmínka: ' + ch)); panel.append(v); }
+    const m = el('div', 'mrizka');
+    const moz = nad.map((t) => [t.id, (navrh.otazky.indexOf(t) + 1) + '. ' + (t.nazev || 'bez textu')]);
+    if (!nad.some((t) => t.id === p.q)) moz.unshift([p.q, '⚠ ' + (navrh.otazky.find((t) => t.id === p.q) || { nazev: 'smazaná otázka' }).nazev]);
+    m.append(vyberPole('Podle otázky', moz, p.q, (v) => {
+      const t = navrh.otazky.find((x) => x.id === v);
+      if (t && PODMINKY[t.typ]) q.podminka = vychoziPodminka(t);
+      prekresliKartu(q);
+    }));
+    const t = navrh.otazky.find((x) => x.id === p.q);
+    if (t && PODMINKY[t.typ] && nad.includes(t)) {
+      const ops = PODMINKY[t.typ];
+      if (ops.length > 1) m.append(vyberPole('Podmínka', ops.map((o) => [o, NAZVY_OP[o]]), ops.includes(p.op) ? p.op : ops[0], (v) => { p.op = v; }));
+      if (!ops.includes(p.op)) p.op = ops[0];
+      const hodnotaPole = (popisek, moznosti) => {
+        if (!moznosti.some(([v]) => String(v) === String(p.h))) moznosti.unshift(['', '— vyber —']);
+        return vyberPole(popisek, moznosti, p.h === undefined ? '' : p.h, (v) => { p.h = ['hvezdy', 'smajlik', 'skala'].includes(t.typ) ? (v === '' ? null : Number(v)) : v; prekresliKartu(q); });
+      };
+      switch (t.typ) {
+        case 'ano_ne': m.append(hodnotaPole('Odpověď', [['ano', 'Ano'], ['ne', 'Ne']])); break;
+        case 'vyber':
+          m.append(hodnotaPole(t.rezim === 'jedna' ? 'Odpověď' : t.rezim === 'vice' ? 'Je zaškrtnuto' : 'Je vybráno (aspoň 1×)',
+            aktivniMozn(t.moznosti).map((x, k) => [x.id, x.nazev || 'Možnost ' + (k + 1)])));
+          break;
+        case 'hvezdy': case 'smajlik': case 'skala': {
+          const od = t.typ === 'skala' ? t.od : 1;
+          const doo = t.typ === 'skala' ? t.do : t.typ === 'hvezdy' ? (t.max || 5) : 5;
+          const r = [];
+          for (let k = od; k <= doo; k++) r.push([k, t.typ === 'smajlik' ? k + ' – ' + SMAJLICI[k - 1].t : t.typ === 'hvezdy' ? k + ' ★' : String(k)]);
+          m.append(hodnotaPole('Hodnota', r));
+          break;
+        }
+        case 'cislo':
+          m.append(poleCislo2('Hodnota' + (t.jednotka ? ' (' + t.jednotka + ')' : ''), p.h, (v) => { p.h = v; }, { placeholder: 'číslo' }));
+          break;
+      }
+    }
+    panel.append(m);
+    box.append(panel);
+    return box;
   }
 
   function poleText2(popisek, hodnota, max, zmen, placeholder, klic) {
@@ -3892,13 +4184,23 @@
   function pouzijSablonu(s) {
     if (navrh.otazky.length && !confirm('Šablona „' + s.nazev + '“ nahradí současné otázky a nadpis. Pokračovat? (Projeví se až po uložení.)')) return;
     const d = kopie(s);
+    const noveId = {};   // staré id otázky -> {id, moznosti: {staré id -> nové}}
     const otazky = (d.otazky || []).filter((q) => q && TYPY[q.typ] && q.aktivni !== false).map((q) => {
       delete q.aktivni;
-      q.id = nid('q');
+      const zaznam = { id: nid('q'), moznosti: {} };
+      noveId[q.id] = zaznam;
+      q.id = zaznam.id;
       ['moznosti', 'sloupce'].forEach((k) => {
-        if (Array.isArray(q[k])) q[k] = q[k].filter((m) => m.aktivni !== false).map((m) => ({ id: nid('m'), nazev: m.nazev }));
+        if (Array.isArray(q[k])) q[k] = q[k].filter((m) => m.aktivni !== false).map((m) => { const n = nid('m'); if (k === 'moznosti') zaznam.moznosti[m.id] = n; return { id: n, nazev: m.nazev }; });
       });
       return q;
+    });
+    otazky.forEach((q) => {
+      if (!q.podminka) return;
+      const z = noveId[q.podminka.q];
+      if (!z) { delete q.podminka; return; }
+      q.podminka.q = z.id;
+      if (typeof q.podminka.h === 'string' && z.moznosti[q.podminka.h]) q.podminka.h = z.moznosti[q.podminka.h];
     });
     navrh.nastaveni = Object.assign({}, navrh.nastaveni, d.nastaveni || {});
     navrh.otazky = otazky;
@@ -4046,6 +4348,7 @@
       let chyba = '';
       if (!String(q.nazev || '').trim()) chyba = 'Otázka č. ' + (i + 1) + ' nemá text.';
       ['moznosti', 'sloupce'].forEach((k) => { if (!chyba && q[k] && q[k].some((m) => !String(m.nazev || '').trim())) chyba = 'Otázka č. ' + (i + 1) + ' má prázdnou možnost.'; });
+      if (!chyba && q.podminka) { const c = chybaPodminky(q, navrh.otazky); if (c) chyba = (q.typ === 'nadpis' ? 'Nadpis' : 'Otázka') + ' č. ' + (i + 1) + ' – podmínka zobrazení: ' + c; }
       if (chyba) {
         prepniZalozku('formular');
         rozbalene.add(q.id);
