@@ -1367,6 +1367,7 @@
     smajlik: { ikona: 't-smajlik', nazev: 'Spokojenost', popis: 'Pět smajlíků' },
     skala:   { ikona: 't-skala', nazev: 'Číselná škála', popis: 'Např. 1–10 nebo NPS' },
     cislo:   { ikona: 't-cislo', nazev: 'Číslo', popis: 'Počet, částka…' },
+    telefon: { ikona: 'phone', nazev: 'Telefonní číslo', popis: 'S předvolbou a vlajkou' },
     text:    { ikona: 't-text', nazev: 'Text', popis: 'Krátká nebo dlouhá odpověď' },
     datum:   { ikona: 't-datum', nazev: 'Datum', popis: 'Výběr dne' },
     poradi:  { ikona: 't-poradi', nazev: 'Seřazení', popis: 'Seřadit podle priority' },
@@ -1434,7 +1435,7 @@
     const s = vychozi.p === m[1] ? vychozi : STATY.find((x) => x.p === m[1]);
     return { stat: s ? s.k : vychozi.k, cislo: m[2] };
   }
-  const ikonaOtazky = (q) => (q.typ === 'cislo' && q.telefon ? 'phone' : (TYPY[q.typ] || TYPY.text).ikona);
+  const ikonaOtazky = (q) => (TYPY[q.typ] || TYPY.text).ikona;
 
   const SMAJLICI = [
     { e: '😠', t: 'Velmi nespokojen/a' }, { e: '🙁', t: 'Nespokojen/a' }, { e: '😐', t: 'Tak napůl' },
@@ -1839,9 +1840,8 @@
       case 'hvezdy': return Number.isInteger(v) && v >= 1 && v <= (q.max || 5) ? v : undefined;
       case 'smajlik': return Number.isInteger(v) && v >= 1 && v <= 5 ? v : undefined;
       case 'skala': return Number.isInteger(v) && v >= q.od && v <= q.do ? v : undefined;
-      case 'cislo':
-        if (q.telefon) return v && typeof v === 'object' && /\d/.test(String(v.cislo || '')) ? v : undefined;
-        return String(v).trim() ? String(v) : undefined;
+      case 'cislo': return String(v).trim() ? String(v) : undefined;
+      case 'telefon': return v && typeof v === 'object' && /\d/.test(String(v.cislo || '')) ? v : undefined;
       case 'text': return typeof v === 'string' && v.trim() ? v : undefined;
       case 'datum': return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined;
       case 'poradi':
@@ -1939,7 +1939,7 @@
     const tvurce = {
       vyber: q.rezim === 'pocet' ? polePocet : q.rezim === 'vice' ? poleVice : poleJedna,
       ano_ne: poleAnoNe, hvezdy: poleHvezdy, smajlik: poleSmajlik, skala: poleSkala,
-      cislo: q.telefon ? poleTelefon : poleCislo, text: poleText, datum: poleDatum, poradi: polePoradi, matice: poleMatice
+      cislo: poleCislo, telefon: poleTelefon, text: poleText, datum: poleDatum, poradi: polePoradi, matice: poleMatice
     }[q.typ];
     if (tvurce) tvurce(q, telo, blok);
     blok.append(telo, el('p', 'q-err'));
@@ -2362,7 +2362,7 @@
     aktivniOtazky().forEach((q) => {
       if (!odpovidaci(q)) return;
       let v;
-      if (q.typ === 'cislo' && q.telefon) {
+      if (q.typ === 'telefon') {
         const h = ocistiHodnotu(q, hodnoty[q.id]);
         if (h) {
           const s = stat(h.stat);
@@ -2420,7 +2420,8 @@
       case 'hvezdy': return ['★'.repeat(v) + '☆'.repeat(Math.max(0, (q.max || 5) - v))];
       case 'smajlik': return SMAJLICI[v - 1] ? [SMAJLICI[v - 1].e + ' ' + SMAJLICI[v - 1].t] : [String(v)];
       case 'skala': return [v + ' / ' + q.do];
-      case 'cislo': return q.telefon ? [String(v)] : [fmt(v, 4) + (q.jednotka ? ' ' + q.jednotka : '')];
+      case 'cislo': return [fmt(v, 4) + (q.jednotka ? ' ' + q.jednotka : '')];
+      case 'telefon': return [String(v)];
       case 'text': return [String(v)];
       case 'datum': return [formatDatum(v)];
       case 'poradi': return Array.isArray(v) ? v.map((id, i) => (i + 1) + '. ' + nazevMoznosti(q, id)) : [];
@@ -2540,7 +2541,8 @@
       case 'hvezdy': return grafHvezdy(q, A);
       case 'smajlik': return grafSmajlik(q, A);
       case 'skala': return grafSkala(q, A);
-      case 'cislo': return q.telefon ? grafTelefon(q, A) : grafCislo(q, A);
+      case 'cislo': return grafCislo(q, A);
+      case 'telefon': return grafTelefon(q, A);
       case 'text': return grafText(q, A);
       case 'datum': return grafDatum(q, A);
       case 'poradi': return grafPoradi(q, A);
@@ -3065,7 +3067,8 @@
     dotknute = {};
     aktivniOtazky().forEach((q) => { if (q.typ === 'poradi' && o.data[q.id] !== undefined) dotknute[q.id] = true; });
     aktivniOtazky().forEach((q) => {
-      if (q.typ === 'cislo' && hodnoty[q.id] !== undefined) hodnoty[q.id] = q.telefon ? rozlozTelefon(q, hodnoty[q.id]) : String(hodnoty[q.id]).replace('.', ',');
+      if (q.typ === 'cislo' && hodnoty[q.id] !== undefined) hodnoty[q.id] = String(hodnoty[q.id]).replace('.', ',');
+      if (q.typ === 'telefon' && hodnoty[q.id] !== undefined) hodnoty[q.id] = rozlozTelefon(q, hodnoty[q.id]);
     });
     vykresliFormular();
     $('zrusit').hidden = false;
@@ -3474,7 +3477,8 @@
       case 'vyber': Object.assign(q, { rezim: 'jedna', moznosti: mozn(['Možnost 1', 'Možnost 2']), minVyber: 0, maxVyber: 0, maxNa: 20, maxCelkem: 0, jednotka: '' }); break;
       case 'hvezdy': q.max = 5; break;
       case 'skala': Object.assign(q, { od: 1, do: 10, popisOd: 'Vůbec', popisDo: 'Naprosto' }); break;
-      case 'cislo': Object.assign(q, { min: null, max: null, desetinna: false, jednotka: '', telefon: false, predvolba: 'CZ' }); break;
+      case 'cislo': Object.assign(q, { min: null, max: null, desetinna: false, jednotka: '' }); break;
+      case 'telefon': Object.assign(q, { predvolba: 'CZ', skryt: true }); break; // telefony většinou nepatří do veřejných výsledků
       case 'text': q.viceRadku = false; break;
       case 'poradi': q.moznosti = mozn(['První', 'Druhá', 'Třetí']); break;
       case 'matice': Object.assign(q, { moznosti: mozn(['Řádek 1', 'Řádek 2']), sloupce: mozn(SLOUPCE_PREDVOLBY['Souhlas']) }); break;
@@ -3484,7 +3488,7 @@
 
   function zmenTyp(q, typ) {
     const n = vychoziOtazka(typ);
-    const zachovat = { id: q.id, nazev: q.nazev, popis: q.popis, povinna: typ !== 'nadpis' && q.povinna, skryt: q.skryt };
+    const zachovat = { id: q.id, nazev: q.nazev, popis: q.popis, povinna: typ !== 'nadpis' && q.povinna, skryt: typ === 'telefon' ? true : q.skryt };
     if (q.moznosti && n.moznosti) zachovat.moznosti = q.moznosti;
     Object.keys(q).forEach((k) => delete q[k]);
     Object.assign(q, n, zachovat);
@@ -3494,7 +3498,7 @@
     const t = TYPY[q.typ] || { nazev: q.typ };
     if (q.typ === 'vyber') return t.nazev + ' · ' + REZIMY[q.rezim].nazev.toLowerCase() + ' · ' + (q.moznosti || []).length + ' ' + pl((q.moznosti || []).length, 'možnost', 'možnosti', 'možností');
     if (q.typ === 'poradi') return t.nazev + ' · ' + (q.moznosti || []).length + ' položek';
-    if (q.typ === 'cislo' && q.telefon) return 'Telefonní číslo · +' + stat(q.predvolba || 'CZ').p;
+    if (q.typ === 'telefon') return t.nazev + ' · +' + stat(q.predvolba || 'CZ').p;
     if (q.typ === 'matice') return t.nazev + ' · ' + (q.moznosti || []).length + ' × ' + (q.sloupce || []).length;
     return t.nazev;
   }
@@ -3695,17 +3699,11 @@
         if (q.od === 0 && q.do === 10) sub.append(el('p', 'muted', 'Škála 0–10 ve výsledcích ukáže i NPS (podíl nadšenců mínus kritiků).'));
         break;
       }
+      case 'telefon':
+        sub.append(vyberPole('Výchozí předvolba', STATY.map((x) => [x.k, x.n + ' (+' + x.p + ')']), q.predvolba || 'CZ', (v) => { q.predvolba = v; obnovHlavu(); }));
+        sub.append(el('p', 'muted', 'Pole s výběrem předčíslí a vlajkou státu – vyplňující si předvolbu může změnit. Česká a slovenská čísla musí mít 9 číslic. Ve výsledcích jsou čísla klikací.'));
+        break;
       case 'cislo': {
-        sub.append(prepinac('Telefonní číslo', 'Pole s výběrem předčíslí a vlajkou státu.', q.telefon, (v) => {
-          q.telefon = v;
-          if (v) q.skryt = true; // telefony většinou nepatří do veřejných výsledků (jde vypnout níž)
-          prekresliKartu(q);
-        }));
-        if (q.telefon) {
-          sub.append(vyberPole('Výchozí předvolba', STATY.map((x) => [x.k, x.n + ' (+' + x.p + ')']), q.predvolba || 'CZ', (v) => { q.predvolba = v; }));
-          sub.append(el('p', 'muted', 'Vyplňující si předvolbu může změnit. Česká a slovenská čísla musí mít 9 číslic.'));
-          break;
-        }
         const m = mrizka();
         m.append(poleCislo2('Nejmenší', q.min, (v) => { q.min = v; }, { placeholder: 'bez omezení' }));
         m.append(poleCislo2('Největší', q.max, (v) => { q.max = v; }, { placeholder: 'bez omezení' }));
@@ -3812,7 +3810,7 @@
         S('Jak pojedeš?', 'vyber', { rezim: 'jedna', moznosti: mozn(['Vlastním autem', 'Vlakem / busem', 'Potřebuju svézt']) }),
         S('Kolik volných míst máš v autě?', 'cislo', { min: 0, max: 8, jednotka: 'míst' }),
         S('Co vezmeš na společné použití?', 'vyber', { rezim: 'vice', moznosti: mozn(['Stan', 'Vařič', 'Kytaru', 'Lékárničku', 'Barel']) }),
-        S('Telefon', 'text', { skryt: true, popis: 'Uvidí jen organizátor.' }),
+        S('Telefon', 'telefon', { popis: 'Uvidí jen organizátor.' }),
         S('Poznámka', 'text', { viceRadku: true })
       ]
     }) }
@@ -4118,11 +4116,11 @@
         r.forEach((rid) => sloupceCSV.push({ nazev: q.nazev + ': ' + nazevMoznosti(q, rid) + arch, hodnota: (o) => (o.data[q.id] && o.data[q.id][rid] ? nazevMoznosti(q, o.data[q.id][rid]) : '') }));
       } else {
         sloupceCSV.push({
-          nazev: q.nazev + arch, soucet: q.typ === 'cislo' && !q.telefon,
+          nazev: q.nazev + arch, soucet: q.typ === 'cislo',
           hodnota: (o) => {
             const v = o.data[q.id];
             if (v === undefined) return '';
-            if (q.typ === 'cislo' && q.telefon) return { text: String(v) };
+            if (q.typ === 'telefon') return { text: String(v) };
             if (q.typ === 'cislo' || q.typ === 'hvezdy' || q.typ === 'smajlik' || q.typ === 'skala') return v;
             if (q.typ === 'poradi') return Array.isArray(v) ? v.map((id) => nazevMoznosti(q, id)).join(' > ') : '';
             if (q.typ === 'ano_ne') return v ? 'Ano' : 'Ne';
