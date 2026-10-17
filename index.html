@@ -208,7 +208,7 @@
 
   .lbl { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 8px; }
   .lbl.sp { margin-top: 18px; }
-  input[type=text], input[type=password], input[type=date], input[type=datetime-local], input[type=number], textarea, select {
+  input[type=text], input[type=password], input[type=tel], input[type=date], input[type=datetime-local], input[type=number], textarea, select {
     width: 100%;
     padding: 14px 16px;
     font: inherit;
@@ -372,7 +372,9 @@
   .stars .stav { margin-left: 10px; color: var(--muted); font-weight: 600; font-size: .92rem; }
 
   /* smajlíci */
-  .smileys { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .smileys { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .smile-stav { display: none; margin-top: 8px; text-align: center; color: var(--muted); font-weight: 600; font-size: .9rem; }
+  .smile-stav.on { color: var(--accent-d); }
   .pick {
     display: grid; justify-items: center; gap: 4px;
     padding: 10px 4px; border: 1.5px solid var(--line); border-radius: 16px;
@@ -380,17 +382,56 @@
     transition: transform .12s, border-color .15s, background .15s, filter .15s, opacity .15s;
   }
   .pick .e { font-size: 1.9rem; line-height: 1.1; }
-  .pick .t { font-size: .72rem; color: var(--muted); font-weight: 600; text-align: center; line-height: 1.2; }
+  .pick .t { font-size: .72rem; color: var(--muted); font-weight: 600; text-align: center; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+  @media (max-width: 480px) {
+    /* na mobilu jen smajlíci, popisek vybraného je pod nimi */
+    .smileys { gap: 6px; }
+    .smileys .pick { padding: 10px 0; }
+    .smileys .pick .t { display: none; }
+    .smile-stav { display: block; }
+  }
   .smileys.vybrano .pick:not(.on) { filter: grayscale(.8); opacity: .55; }
   .pick.on { border-color: var(--accent); background: var(--accent-l); transform: translateY(-2px); box-shadow: 0 0 0 3px var(--accent-l); }
   .pick.on .t { color: var(--accent-d); }
 
   /* číselná škála */
-  .scale { display: grid; grid-template-columns: repeat(auto-fit, minmax(38px, 1fr)); gap: 6px; }
+  .scale { display: grid; grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr)); gap: 6px; }
+  @media (max-width: 480px) { .scale.dlouha { grid-template-columns: repeat(var(--n2, 5), minmax(0, 1fr)); } }
   .scale .pick { padding: 10px 0; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
   .scale .pick.on { background: var(--accent); color: #fff; border-color: var(--accent); }
   .scale-ends { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; color: var(--muted); font-size: .82rem; }
   .scale-ends span:last-child { text-align: right; }
+
+  /* telefon s předvolbou */
+  .vlajka { display: inline-block; flex: 0 0 auto; width: 24px; height: 16px; border-radius: 3px; overflow: hidden; box-shadow: 0 0 0 1px rgba(0, 0, 0, .18); }
+  .vlajka svg { display: block; width: 100%; height: 100%; }
+  .tel { position: relative; display: flex; gap: 8px; }
+  .tel input { flex: 1; min-width: 0; }
+  .tel-stat {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; padding: 0 10px 0 12px;
+    border: 1.5px solid var(--line); border-radius: 14px; background: var(--tile); color: var(--ink);
+    font: inherit; font-weight: 600; font-size: 1rem; font-variant-numeric: tabular-nums; cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .tel-stat .ic { width: 16px; height: 16px; color: var(--muted); transition: transform .2s; }
+  .tel-stat[aria-expanded=true] { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-l); }
+  .tel-stat[aria-expanded=true] .ic { transform: rotate(180deg); }
+  .tel-stat:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .tel-seznam {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
+    width: min(320px, 100%); max-height: 300px; overflow: auto; padding: 6px;
+    border-radius: 14px; background: var(--card); box-shadow: 0 0 0 1px var(--line), 0 14px 36px rgba(0, 0, 0, .28);
+  }
+  .tel-polozka {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 10px;
+    background: none; color: var(--ink); font: inherit; font-size: .95rem; text-align: left; cursor: pointer;
+  }
+  .tel-polozka:hover, .tel-polozka:focus-visible { background: var(--tile); outline: none; }
+  .tel-polozka[aria-selected=true] { background: var(--accent-l); color: var(--accent-d); font-weight: 600; }
+  .tel-polozka .n { flex: 1; min-width: 0; }
+  .tel-polozka .p { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tel-odkaz { color: var(--accent-d); font-weight: 600; text-decoration: none; font-variant-numeric: tabular-nums; }
+  .tel-odkaz:hover { text-decoration: underline; }
 
   /* číslo */
   .num-wrap { display: flex; align-items: center; gap: 10px; }
@@ -989,6 +1030,8 @@
   <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
   <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
 </defs></svg>
 <main>
   <div class="appbar">
@@ -1335,6 +1378,64 @@
     vice: { nazev: 'Více možností', popis: 'zaškrtávátka' },
     pocet: { nazev: 'Jednu i vícekrát', popis: 'počítadlo + / −' }
   };
+  // státy pro telefonní předvolbu – vlajky jako SVG (vypadají všude stejně)
+  const vlH = (b) => b.map((c, i) => '<rect y="' + (20 / b.length * i).toFixed(3) + '" width="30" height="' + (20 / b.length + .05).toFixed(3) + '" fill="' + c + '"/>').join('');
+  const vlV = (b) => b.map((c, i) => '<rect x="' + (30 / b.length * i).toFixed(3) + '" width="' + (30 / b.length + .05).toFixed(3) + '" height="20" fill="' + c + '"/>').join('');
+  const VLAJKY = {
+    CZ: '<rect width="30" height="10" fill="#fff"/><rect y="10" width="30" height="10" fill="#d7141a"/><path d="M0 0 15 10 0 20Z" fill="#11457e"/>',
+    SK: vlH(['#fff', '#0b4ea2', '#ee1c25']) + '<path d="M6.5 4.3h7v6.6c0 2.6-1.9 4.1-3.5 4.8-1.6-.7-3.5-2.2-3.5-4.8Z" fill="#ee1c25" stroke="#fff" stroke-width=".8"/><path d="M10 5.8v7.4M8.4 7.5h3.2M7.8 9.4h4.4" stroke="#fff" stroke-width=".95"/><path d="M7.2 13c.8-1 1.8-1 2.8-.1 1-.9 2-.9 2.8.1-.6 1.2-1.6 2-2.8 2.6-1.2-.6-2.2-1.4-2.8-2.6Z" fill="#0b4ea2"/>',
+    DE: vlH(['#000', '#dd0000', '#ffce00']),
+    AT: vlH(['#ed2939', '#fff', '#ed2939']),
+    PL: vlH(['#fff', '#dc143c']),
+    HU: vlH(['#ce2939', '#fff', '#477050']),
+    UA: vlH(['#0057b7', '#ffd700']),
+    GB: '<rect width="30" height="20" fill="#012169"/><path d="M0 0 30 20M30 0 0 20" stroke="#fff" stroke-width="4"/><path d="M0 0 30 20M30 0 0 20" stroke="#c8102e" stroke-width="1.4"/><path d="M15 0v20M0 10h30" stroke="#fff" stroke-width="6"/><path d="M15 0v20M0 10h30" stroke="#c8102e" stroke-width="3.4"/>',
+    IE: vlV(['#169b62', '#fff', '#ff883e']),
+    US: (function () {
+      let r = '<rect width="30" height="20" fill="#fff"/>';
+      for (let i = 0; i < 13; i += 2) r += '<rect y="' + (i * 20 / 13).toFixed(3) + '" width="30" height="' + (20 / 13).toFixed(3) + '" fill="#b22234"/>';
+      r += '<rect width="13" height="10.77" fill="#3c3b6e"/>';
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 5; x++) r += '<circle cx="' + (1.5 + x * 2.5 + (y % 2) * 1.2).toFixed(2) + '" cy="' + (1.6 + y * 2.5).toFixed(2) + '" r=".55" fill="#fff"/>';
+      return r;
+    })(),
+    FR: vlV(['#002395', '#fff', '#ed2939']),
+    IT: vlV(['#009246', '#fff', '#ce2b37']),
+    ES: vlH(['#aa151b', '#f1bf00', '#f1bf00', '#aa151b']),
+    NL: vlH(['#ae1c28', '#fff', '#21468b']),
+    BE: vlV(['#000', '#fdda24', '#ef3340']),
+    CH: '<rect width="30" height="20" fill="#da291c"/><path d="M13 4h4v12h-4zM9 8h12v4H9z" fill="#fff"/>',
+    HR: vlH(['#ff0000', '#fff', '#171796']) + '<path d="M12 5h6v5.5c0 2-1.4 3.2-3 3.8-1.6-.6-3-1.8-3-3.8Z" fill="#fff" stroke="#ff0000" stroke-width=".5"/><path d="M12 5h1.5v1.5H12zM15 5h1.5v1.5H15zM13.5 6.5H15V8h-1.5zM16.5 6.5H18V8h-1.5zM12 8h1.5v1.5H12zM15 8h1.5v1.5H15zM13.5 9.5H15V11h-1.5zM16.5 9.5H18V11h-1.5zM12.3 11h1.2v1.3h-.9zM15 11h1.5v1.5H15zM13.5 12.5H15v1.3l-1.5-.6z" fill="#ff0000"/>',
+    SI: vlH(['#fff', '#0000ff', '#ff0000']) + '<path d="M6 3.4h5v4.1c0 1.7-1.2 2.7-2.5 3.2C7.2 10.2 6 9.2 6 7.5Z" fill="#005da4" stroke="#ed1c24" stroke-width=".5"/><path d="M6.4 8.1 7.7 6.3l.8 1 .8-1 1.3 1.8" stroke="#fff" stroke-width=".6" fill="none"/>'
+  };
+  const STATY = [
+    ['CZ', 'Česko', '420'], ['SK', 'Slovensko', '421'], ['BE', 'Belgie', '32'], ['HR', 'Chorvatsko', '385'], ['FR', 'Francie', '33'],
+    ['IE', 'Irsko', '353'], ['IT', 'Itálie', '39'], ['HU', 'Maďarsko', '36'], ['DE', 'Německo', '49'], ['NL', 'Nizozemsko', '31'],
+    ['PL', 'Polsko', '48'], ['AT', 'Rakousko', '43'], ['SI', 'Slovinsko', '386'], ['GB', 'Spojené království', '44'],
+    ['US', 'Spojené státy', '1'], ['ES', 'Španělsko', '34'], ['CH', 'Švýcarsko', '41'], ['UA', 'Ukrajina', '380']
+  ].map(([k, n, p]) => ({ k: k, n: n, p: p }));
+  const stat = (k) => STATY.find((x) => x.k === k) || STATY[0];
+  function vlajka(k) {
+    const sp = el('span', 'vlajka');
+    sp.innerHTML = '<svg viewBox="0 0 30 20" aria-hidden="true">' + (VLAJKY[k] || '') + '</svg>';
+    return sp;
+  }
+  // 777123456 → „777 123 456“; když by zbyla jedna číslice, přidá se k poslední skupině
+  function skupinyCislic(c) {
+    const sk = [];
+    for (let i = 0; i < c.length; i += 3) sk.push(c.slice(i, i + 3));
+    if (sk.length > 1 && sk[sk.length - 1].length === 1) sk[sk.length - 2] += sk.pop();
+    return sk.join(' ');
+  }
+  // uložené „+420 777 123 456“ → { stat: 'CZ', cislo: '777 123 456' } pro úpravu odpovědi
+  function rozlozTelefon(q, v) {
+    const m = String(v || '').match(/^\+(\d{1,3})\s*(.*)$/);
+    if (!m) return { stat: q.predvolba || 'CZ', cislo: String(v || '') };
+    const vychozi = stat(q.predvolba || 'CZ');
+    const s = vychozi.p === m[1] ? vychozi : STATY.find((x) => x.p === m[1]);
+    return { stat: s ? s.k : vychozi.k, cislo: m[2] };
+  }
+  const ikonaOtazky = (q) => (q.typ === 'cislo' && q.telefon ? 'phone' : (TYPY[q.typ] || TYPY.text).ikona);
+
   const SMAJLICI = [
     { e: '😠', t: 'Velmi nespokojen/a' }, { e: '🙁', t: 'Nespokojen/a' }, { e: '😐', t: 'Tak napůl' },
     { e: '🙂', t: 'Spokojen/a' }, { e: '😍', t: 'Nadšen/a' }
@@ -1738,7 +1839,9 @@
       case 'hvezdy': return Number.isInteger(v) && v >= 1 && v <= (q.max || 5) ? v : undefined;
       case 'smajlik': return Number.isInteger(v) && v >= 1 && v <= 5 ? v : undefined;
       case 'skala': return Number.isInteger(v) && v >= q.od && v <= q.do ? v : undefined;
-      case 'cislo': return String(v).trim() ? String(v) : undefined;
+      case 'cislo':
+        if (q.telefon) return v && typeof v === 'object' && /\d/.test(String(v.cislo || '')) ? v : undefined;
+        return String(v).trim() ? String(v) : undefined;
       case 'text': return typeof v === 'string' && v.trim() ? v : undefined;
       case 'datum': return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined;
       case 'poradi':
@@ -1836,7 +1939,7 @@
     const tvurce = {
       vyber: q.rezim === 'pocet' ? polePocet : q.rezim === 'vice' ? poleVice : poleJedna,
       ano_ne: poleAnoNe, hvezdy: poleHvezdy, smajlik: poleSmajlik, skala: poleSkala,
-      cislo: poleCislo, text: poleText, datum: poleDatum, poradi: polePoradi, matice: poleMatice
+      cislo: q.telefon ? poleTelefon : poleCislo, text: poleText, datum: poleDatum, poradi: polePoradi, matice: poleMatice
     }[q.typ];
     if (tvurce) tvurce(q, telo, blok);
     blok.append(telo, el('p', 'q-err'));
@@ -2001,11 +2104,14 @@
       box.append(b);
       return b;
     });
-    telo.append(box);
+    const stav = el('div', 'smile-stav');
+    telo.append(box, stav);
     obnovy[q.id] = () => {
       const v = hodnoty[q.id];
       box.classList.toggle('vybrano', !!v);
       tl.forEach((b, i) => { b.classList.toggle('on', v === i + 1); b.setAttribute('aria-checked', v === i + 1 ? 'true' : 'false'); });
+      stav.textContent = v ? SMAJLICI[v - 1].t : 'Vyber, jak moc jsi spokojen/a';
+      stav.classList.toggle('on', !!v);
     };
   }
 
@@ -2013,6 +2119,10 @@
   function poleSkala(q, telo) {
     const box = el('div', 'scale');
     box.setAttribute('role', 'radiogroup');
+    const pocet = q.do - q.od + 1;
+    box.style.setProperty('--n', pocet);
+    box.style.setProperty('--n2', Math.ceil(pocet / 2));
+    box.classList.toggle('dlouha', pocet > 6); // na mobilu do dvou stejných řad
     const tl = [];
     for (let i = q.od; i <= q.do; i++) {
       const b = tlacitko('pick', String(i), () => nastavHodnotu(q, hodnoty[q.id] === i ? undefined : i), String(i));
@@ -2032,6 +2142,73 @@
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', on ? 'true' : 'false');
     });
+  }
+
+  // --- telefonní číslo s předvolbou ---
+  function poleTelefon(q, telo) {
+    const w = el('div', 'tel');
+    const volba = tlacitko('tel-stat', undefined, () => (seznam.hidden ? otevri() : zavri()), 'Předvolba státu');
+    volba.setAttribute('aria-haspopup', 'listbox');
+    volba.setAttribute('aria-expanded', 'false');
+    const inp = document.createElement('input');
+    inp.type = 'tel';
+    inp.inputMode = 'tel';
+    inp.autocomplete = 'tel-national';
+    inp.setAttribute('aria-label', q.nazev);
+    const seznam = el('div', 'tel-seznam');
+    seznam.hidden = true;
+    seznam.setAttribute('role', 'listbox');
+    const polozky = STATY.map((s) => {
+      const b = tlacitko('tel-polozka', undefined, () => { nastavHodnotu(q, { stat: s.k, cislo: stavTel().cislo }); zavri(); inp.focus(); });
+      b.setAttribute('role', 'option');
+      b.dataset.k = s.k;
+      b.append(vlajka(s.k), el('span', 'n', s.n), el('span', 'p', '+' + s.p));
+      seznam.append(b);
+      return b;
+    });
+    w.append(volba, inp, seznam);
+    telo.append(w);
+
+    function stavTel() {
+      const h = hodnoty[q.id];
+      return h && typeof h === 'object' ? h : { stat: q.predvolba || 'CZ', cislo: '' };
+    }
+    function otevri() {
+      seznam.hidden = false;
+      volba.setAttribute('aria-expanded', 'true');
+      const vybrana = seznam.querySelector('[aria-selected=true]') || polozky[0];
+      vybrana.focus({ preventScroll: true });
+      vybrana.scrollIntoView({ block: 'nearest' });
+    }
+    function zavri() {
+      seznam.hidden = true;
+      volba.setAttribute('aria-expanded', 'false');
+    }
+    document.addEventListener('click', (e) => { if (!seznam.hidden && !w.contains(e.target)) zavri(); });
+    w.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !seznam.hidden) { e.preventDefault(); zavri(); volba.focus(); }
+      if (!seznam.hidden && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
+        const i = polozky.indexOf(document.activeElement);
+        const j = Math.max(0, Math.min(polozky.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)));
+        polozky[j].focus();
+      }
+    });
+    inp.addEventListener('input', () => {
+      hodnoty[q.id] = { stat: stavTel().stat, cislo: inp.value };
+      chybaOtazky(q.id, '');
+      aktualizujPostup();
+    });
+    obnovy[q.id] = () => {
+      const h = stavTel();
+      const s = stat(h.stat);
+      volba.textContent = '';
+      volba.append(vlajka(s.k), document.createTextNode('+' + s.p), ik('chevron'));
+      volba.title = s.n + ' (+' + s.p + ')';
+      inp.placeholder = s.k === 'CZ' || s.k === 'SK' ? '777 123 456' : 'Telefonní číslo';
+      if (inp.value !== h.cislo) inp.value = h.cislo;
+      polozky.forEach((b) => b.setAttribute('aria-selected', b.dataset.k === s.k ? 'true' : 'false'));
+    };
   }
 
   // --- číslo ---
@@ -2185,7 +2362,19 @@
     aktivniOtazky().forEach((q) => {
       if (!odpovidaci(q)) return;
       let v;
-      if (q.typ === 'cislo') {
+      if (q.typ === 'cislo' && q.telefon) {
+        const h = ocistiHodnotu(q, hodnoty[q.id]);
+        if (h) {
+          const s = stat(h.stat);
+          let c = String(h.cislo).replace(/[\s\-\/().]/g, '');
+          if (c.startsWith('+' + s.p)) c = c.slice(s.p.length + 1);
+          else if (c.startsWith('00' + s.p)) c = c.slice(s.p.length + 2);
+          if (!/^\d+$/.test(c)) { chyby[q.id] = 'Zadej telefonní číslo jen číslicemi – předvolbu vyber vlevo.'; return; }
+          if ((s.k === 'CZ' || s.k === 'SK') && c.length !== 9) { chyby[q.id] = 'Číslo má mít 9 číslic (bez předvolby).'; return; }
+          if (c.length < 5 || c.length > 13 || s.p.length + c.length > 15) { chyby[q.id] = 'Zkontroluj počet číslic telefonního čísla.'; return; }
+          v = '+' + s.p + ' ' + skupinyCislic(c);
+        }
+      } else if (q.typ === 'cislo') {
         const s = String(hodnoty[q.id] === undefined ? '' : hodnoty[q.id]).replace(/\s/g, '').replace(',', '.');
         if (s !== '') {
           const x = Number(s);
@@ -2231,7 +2420,7 @@
       case 'hvezdy': return ['★'.repeat(v) + '☆'.repeat(Math.max(0, (q.max || 5) - v))];
       case 'smajlik': return SMAJLICI[v - 1] ? [SMAJLICI[v - 1].e + ' ' + SMAJLICI[v - 1].t] : [String(v)];
       case 'skala': return [v + ' / ' + q.do];
-      case 'cislo': return [fmt(v, 4) + (q.jednotka ? ' ' + q.jednotka : '')];
+      case 'cislo': return q.telefon ? [String(v)] : [fmt(v, 4) + (q.jednotka ? ' ' + q.jednotka : '')];
       case 'text': return [String(v)];
       case 'datum': return [formatDatum(v)];
       case 'poradi': return Array.isArray(v) ? v.map((id, i) => (i + 1) + '. ' + nazevMoznosti(q, id)) : [];
@@ -2326,7 +2515,7 @@
         k.el.textContent = '';
         const tit = el('div', 'res-title');
         const h = el('h2');
-        if (TYPY[q.typ]) h.append(ik(TYPY[q.typ].ikona));
+        if (TYPY[q.typ]) h.append(ik(ikonaOtazky(q)));
         h.append(document.createTextNode(q.nazev));
         if (q.aktivni === false) h.append(el('span', 'tag', 'už není ve formuláři'));
         if (q.skryt) { const t = el('span', 'tag'); t.append(ik('lock'), document.createTextNode(admin ? 'vidí jen správce' : 'jen tvoje')); h.append(t); }
@@ -2351,7 +2540,7 @@
       case 'hvezdy': return grafHvezdy(q, A);
       case 'smajlik': return grafSmajlik(q, A);
       case 'skala': return grafSkala(q, A);
-      case 'cislo': return grafCislo(q, A);
+      case 'cislo': return q.telefon ? grafTelefon(q, A) : grafCislo(q, A);
       case 'text': return grafText(q, A);
       case 'datum': return grafDatum(q, A);
       case 'poradi': return grafPoradi(q, A);
@@ -2624,6 +2813,26 @@
     return w;
   }
 
+  // telefonní čísla: seznam lidí s klikacím číslem
+  function grafTelefon(q, A) {
+    const serazene = A.slice().sort((a, b) => jmenoNebo(a.o.jmeno).localeCompare(jmenoNebo(b.o.jmeno), 'cs'));
+    return seznamSOmezenim(serazene, 8, (cast) => {
+      const qs = el('div', 'quotes');
+      cast.forEach((x) => {
+        const d = el('div', 'quote');
+        if (vidiJmena) d.append(avatar(x.o.jmeno));
+        const t = el('div', 't');
+        if (vidiJmena) t.append(el('small', null, jmenoNebo(x.o.jmeno)));
+        const a = el('a', 'tel-odkaz', String(x.v));
+        a.href = 'tel:' + String(x.v).replace(/\s/g, '');
+        t.append(a);
+        d.append(t);
+        qs.append(d);
+      });
+      return qs;
+    });
+  }
+
   function grafCislo(q, A) {
     const hodn = A.map((x) => Number(x.v)).filter((v) => isFinite(v));
     const soucet = hodn.reduce((s, v) => s + v, 0);
@@ -2855,7 +3064,9 @@
     hodnoty = kopie(o.data);
     dotknute = {};
     aktivniOtazky().forEach((q) => { if (q.typ === 'poradi' && o.data[q.id] !== undefined) dotknute[q.id] = true; });
-    aktivniOtazky().forEach((q) => { if (q.typ === 'cislo' && hodnoty[q.id] !== undefined) hodnoty[q.id] = String(hodnoty[q.id]).replace('.', ','); });
+    aktivniOtazky().forEach((q) => {
+      if (q.typ === 'cislo' && hodnoty[q.id] !== undefined) hodnoty[q.id] = q.telefon ? rozlozTelefon(q, hodnoty[q.id]) : String(hodnoty[q.id]).replace('.', ',');
+    });
     vykresliFormular();
     $('zrusit').hidden = false;
     zprava('msg', 'Upravuješ odpověď – změň údaje a ulož.');
@@ -3263,7 +3474,7 @@
       case 'vyber': Object.assign(q, { rezim: 'jedna', moznosti: mozn(['Možnost 1', 'Možnost 2']), minVyber: 0, maxVyber: 0, maxNa: 20, maxCelkem: 0, jednotka: '' }); break;
       case 'hvezdy': q.max = 5; break;
       case 'skala': Object.assign(q, { od: 1, do: 10, popisOd: 'Vůbec', popisDo: 'Naprosto' }); break;
-      case 'cislo': Object.assign(q, { min: null, max: null, desetinna: false, jednotka: '' }); break;
+      case 'cislo': Object.assign(q, { min: null, max: null, desetinna: false, jednotka: '', telefon: false, predvolba: 'CZ' }); break;
       case 'text': q.viceRadku = false; break;
       case 'poradi': q.moznosti = mozn(['První', 'Druhá', 'Třetí']); break;
       case 'matice': Object.assign(q, { moznosti: mozn(['Řádek 1', 'Řádek 2']), sloupce: mozn(SLOUPCE_PREDVOLBY['Souhlas']) }); break;
@@ -3283,6 +3494,7 @@
     const t = TYPY[q.typ] || { nazev: q.typ };
     if (q.typ === 'vyber') return t.nazev + ' · ' + REZIMY[q.rezim].nazev.toLowerCase() + ' · ' + (q.moznosti || []).length + ' ' + pl((q.moznosti || []).length, 'možnost', 'možnosti', 'možností');
     if (q.typ === 'poradi') return t.nazev + ' · ' + (q.moznosti || []).length + ' položek';
+    if (q.typ === 'cislo' && q.telefon) return 'Telefonní číslo · +' + stat(q.predvolba || 'CZ').p;
     if (q.typ === 'matice') return t.nazev + ' · ' + (q.moznosti || []).length + ' × ' + (q.sloupce || []).length;
     return t.nazev;
   }
@@ -3311,7 +3523,7 @@
     head.setAttribute('role', 'button');
     head.setAttribute('aria-expanded', otevrena ? 'true' : 'false');
     const ico = el('span', 'qe-ico');
-    ico.append(ik((TYPY[q.typ] || TYPY.text).ikona));
+    ico.append(ik(ikonaOtazky(q)));
     const tit = el('div', 'qe-tit');
     const b = el('b', q.nazev ? null : 'prazdne', q.nazev || 'Bez textu otázky');
     const sm = el('small', null, (i + 1) + '. ' + popisOtazky(q) + (q.povinna ? ' · povinná' : '') + (q.skryt ? ' · skrytá' : ''));
@@ -3484,6 +3696,16 @@
         break;
       }
       case 'cislo': {
+        sub.append(prepinac('Telefonní číslo', 'Pole s výběrem předčíslí a vlajkou státu.', q.telefon, (v) => {
+          q.telefon = v;
+          if (v) q.skryt = true; // telefony většinou nepatří do veřejných výsledků (jde vypnout níž)
+          prekresliKartu(q);
+        }));
+        if (q.telefon) {
+          sub.append(vyberPole('Výchozí předvolba', STATY.map((x) => [x.k, x.n + ' (+' + x.p + ')']), q.predvolba || 'CZ', (v) => { q.predvolba = v; }));
+          sub.append(el('p', 'muted', 'Vyplňující si předvolbu může změnit. Česká a slovenská čísla musí mít 9 číslic.'));
+          break;
+        }
         const m = mrizka();
         m.append(poleCislo2('Nejmenší', q.min, (v) => { q.min = v; }, { placeholder: 'bez omezení' }));
         m.append(poleCislo2('Největší', q.max, (v) => { q.max = v; }, { placeholder: 'bez omezení' }));
@@ -3896,10 +4118,11 @@
         r.forEach((rid) => sloupceCSV.push({ nazev: q.nazev + ': ' + nazevMoznosti(q, rid) + arch, hodnota: (o) => (o.data[q.id] && o.data[q.id][rid] ? nazevMoznosti(q, o.data[q.id][rid]) : '') }));
       } else {
         sloupceCSV.push({
-          nazev: q.nazev + arch, soucet: q.typ === 'cislo',
+          nazev: q.nazev + arch, soucet: q.typ === 'cislo' && !q.telefon,
           hodnota: (o) => {
             const v = o.data[q.id];
             if (v === undefined) return '';
+            if (q.typ === 'cislo' && q.telefon) return { text: String(v) };
             if (q.typ === 'cislo' || q.typ === 'hvezdy' || q.typ === 'smajlik' || q.typ === 'skala') return v;
             if (q.typ === 'poradi') return Array.isArray(v) ? v.map((id) => nazevMoznosti(q, id)).join(' > ') : '';
             if (q.typ === 'ano_ne') return v ? 'Ano' : 'Ne';
@@ -3910,6 +4133,7 @@
       }
     });
     const bunka = (v) => {
+      if (v && typeof v === 'object') return ['"=', '""', String(v.text).replace(/"/g, ''), '""', '"'].join(''); // ="+420 …" → Excel ukáže text
       let s = typeof v === 'number' ? String(v).replace('.', ',') : String(v);
       if (/^[=+\-@]/.test(s) && typeof v !== 'number') s = "'" + s; // ochrana proti vzorcům v Excelu
       return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
