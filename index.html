@@ -4562,7 +4562,8 @@
           hodnota: (o) => {
             const v = o.data[q.id];
             if (v === undefined) return '';
-            if (q.typ === 'telefon') return { text: String(v) };
+            // „(+420) 777 123 456“ – Excel ani LibreOffice z toho neudělají číslo (mezery berou jako oddělovač tisíců)
+            if (q.typ === 'telefon') return String(v).replace(/^\+(\d+)\s*/, '(+$1) ');
             if (q.typ === 'cislo' || q.typ === 'hvezdy' || q.typ === 'smajlik' || q.typ === 'skala') return v;
             if (q.typ === 'poradi') return Array.isArray(v) ? v.map((id) => nazevMoznosti(q, id)).join(' > ') : '';
             if (q.typ === 'ano_ne') return v ? 'Ano' : 'Ne';
@@ -4573,7 +4574,6 @@
       }
     });
     const bunka = (v) => {
-      if (v && typeof v === 'object') return ['"=', '""', String(v.text).replace(/"/g, ''), '""', '"'].join(''); // ="+420 …" → Excel ukáže text
       let s = typeof v === 'number' ? String(v).replace('.', ',') : String(v);
       if (/^[=+\-@]/.test(s) && typeof v !== 'number') s = "'" + s; // ochrana proti vzorcům v Excelu
       return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
