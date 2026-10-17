@@ -129,6 +129,15 @@
      a celá stránka se jen jednou plynule prolne */
   html.bez-prechodu, html.bez-prechodu *, html.bez-prechodu *::before, html.bez-prechodu *::after { transition: none !important; }
   ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .25s; animation-timing-function: ease; }
+  .appbar .vlevo { display: inline-flex; align-items: center; gap: 6px; }
+  .domu {
+    display: inline-grid; place-items: center; width: 26px; height: 22px; border-radius: 99px;
+    background: var(--accent-l); color: var(--accent-d); text-decoration: none;
+    transition: transform .15s, background .15s;
+  }
+  .domu .ic { width: 14px; height: 14px; stroke-width: 2.6; }
+  .domu:hover { transform: translateX(-2px); }
+  .domu:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   /* štítek s verzí – při najetí (nebo klepnutí na telefonu) ukáže datum vydání */
   .appbar .ver {
     display: inline-grid; place-items: center; grid-template-columns: minmax(0, 1fr);
@@ -176,7 +185,8 @@
     background: rgba(255, 255, 255, .08);
   }
   .hero h1, .hero p { padding-right: 48px; }
-  .hero.s-odkazem h1, .hero.s-odkazem p { padding-right: 104px; }
+  .hero.s-odkazem { min-height: 122px; }
+  .hero.s-odkazem #admin-otevrit { top: 64px; }
   .hero h1 .hero-ic { width: .95em; height: .95em; margin-right: .3em; vertical-align: -.12em; stroke-width: 2.2; }
   .hero h1 { position: relative; z-index: 1; font-size: 1.7rem; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.02em; overflow-wrap: anywhere; }
   .hero p { position: relative; z-index: 1; margin: 0; opacity: .9; font-size: .98rem; white-space: pre-line; overflow-wrap: anywhere; }
@@ -691,7 +701,7 @@
   .gear:hover svg { transform: rotate(45deg); }
   .gear:active svg { transform: rotate(90deg) scale(.9); }
   .gear:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
-  .gear.odkaz { right: 64px; }
+  .gear.odkaz { right: 14px; }
   .gear.odkaz svg { width: 19px; height: 19px; }
   .gear.odkaz:hover svg { transform: rotate(-12deg); }
 
@@ -893,6 +903,11 @@
     cursor: pointer; transition: border-color .15s, background .15s;
   }
   .sab:hover { border-color: var(--accent); background: var(--accent-l); }
+  .sab.vybrana { border-color: var(--accent); background: var(--accent-l); box-shadow: 0 0 0 3px var(--accent-l); }
+  .sab.vybrana .t b { color: var(--accent-d); }
+  .sab .i .ic { width: 22px; height: 22px; color: var(--accent); }
+  .pozn-sab { margin: 10px 0 0; font-size: .8rem; }
+  #pn-sablony { min-width: 0; }
   .sab:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
   .sab .i { flex: 0 0 auto; font-size: 1.35rem; width: 30px; text-align: center; }
   .sab .t { flex: 1; min-width: 0; }
@@ -971,7 +986,7 @@
 </defs></svg>
 <main>
   <div class="appbar">
-    <span class="info"><button type="button" class="ver" id="app-ver"><span class="v" id="app-verze">V2.0.1</span><span class="d" id="app-datum" aria-hidden="true">17. 10. 2026</span></button><span id="app-copyright">© 2026 Jan Fictum</span></span>
+    <span class="info"><span class="vlevo"><a id="app-domu" class="domu" href="./" hidden title="Všechny formuláře" aria-label="Všechny formuláře"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></a><button type="button" class="ver" id="app-ver"><span class="v" id="app-verze">V2.0.1</span><span class="d" id="app-datum" aria-hidden="true">17. 10. 2026</span></button></span><span id="app-copyright">© 2026 Jan Fictum</span></span>
     <button type="button" id="rezim" class="rezim" role="switch" aria-checked="true" aria-label="Tmavý režim" title="Tmavý režim"><span class="ik slunce" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span class="ik mesic" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span><span class="jezdec" aria-hidden="true"><svg class="ic slunce" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic mesic" aria-hidden="true"><use href="#i-moon"/></svg></span></button>
   </div>
   <header class="hero">
@@ -1031,7 +1046,7 @@
         <label class="pole"><span>Adresa formuláře (část odkazu)</span><input type="text" id="pn-adresa" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="vodacky-vikend-2026"><small id="pn-odkaz"></small></label>
         <label class="switch"><span class="t">Vstup bez hesla<small>Formulář otevře kdokoli s odkazem.</small></span><input type="checkbox" id="pn-bezhesla"><span class="sw"></span></label>
         <label class="pole" id="pn-heslo-p"><span>Heslo pro vstup do formuláře</span><input type="text" id="pn-heslo" maxlength="100" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="Aspoň 4 znaky"></label>
-        <label class="pole"><span>Začít z</span><select id="pn-sablona"></select></label>
+        <div class="pole"><span>Začít z</span><div id="pn-sablony"></div></div>
         <p id="pn-msg" class="msg err" role="status"></p>
         <div class="radek-btn">
           <button type="button" class="btn" id="pn-vytvorit">Vytvořit a upravit</button>
@@ -3011,6 +3026,7 @@
   const rozbalene = new Set();
 
   function nastavAdmina() {
+    $('app-domu').hidden = !admin || PREHLED;
     $('admin-login').hidden = !!admin;
     $('admin').hidden = !admin;
     $('admin-otevrit').classList.toggle('prihlasen', !!admin);
@@ -3559,17 +3575,7 @@
       nastaveni: { nadpis: 'Objednávka jídla', ikona: '🍽️', popis: 'Klikni na + u jídel, která chceš, a odešli.', textOdeslat: 'Odeslat objednávku', textDekujeme: 'Objednávka uložena ✓ (můžeš přidat další)', jmeno: 'povinne' },
       otazky: [S('Kolik čeho', 'vyber', { rezim: 'pocet', povinna: true, jednotka: 'porcí', maxCelkem: 50, moznosti: mozn(['Menu 1', 'Menu 2', 'Menu 3', 'Menu 4']) })]
     }) },
-    { id: 'sanketa', ikona: '⭐', nazev: 'Anketa spokojenosti', popis: 'Smajlíci, hvězdičky, tabulka, NPS a návrhy', data: () => ({
-      nastaveni: { nadpis: 'Jak se ti líbilo?', ikona: '⭐', popis: 'Zabere to minutku a moc nám to pomůže.', textOdeslat: 'Odeslat hodnocení', textDekujeme: 'Díky za zpětnou vazbu ✓', jmeno: 'volitelne' },
-      otazky: [
-        S('Jak jsi byl/a celkově spokojen/a?', 'smajlik', { povinna: true }),
-        S('Ohodnoť jídlo', 'hvezdy'),
-        S('Jak hodnotíš jednotlivé části?', 'matice', { moznosti: mozn(['Organizace', 'Program', 'Ubytování', 'Doprava']), sloupce: mozn(SLOUPCE_PREDVOLBY['Spokojenost']) }),
-        S('Doporučil/a bys akci kamarádům?', 'skala', { od: 0, do: 10, popisOd: 'Určitě ne', popisDo: 'Určitě ano' }),
-        S('Co bychom měli příště zlepšit?', 'text', { viceRadku: true })
-      ]
-    }) },
-    { id: 'sprihlaska', ikona: '🛶', nazev: 'Přihláška na akci', popis: 'Účast, doprava, počty, výbava', data: () => ({
+    { id: 'sprihlaska', ikona: '🛶', nazev: 'Přihláška na vodu', popis: 'Účast, doprava, počty, výbava', data: () => ({
       nastaveni: { nadpis: 'Přihláška na vodu', ikona: '🛶', popis: 'Vyplň do pátku, ať můžeme objednat lodě.', textOdeslat: 'Přihlásit se', textDekujeme: 'Jsi přihlášený/á ✓', jmeno: 'povinne' },
       otazky: [
         S('Jedeš?', 'ano_ne', { povinna: true }),
@@ -3578,14 +3584,6 @@
         S('Co vezmeš na společné použití?', 'vyber', { rezim: 'vice', moznosti: mozn(['Stan', 'Vařič', 'Kytaru', 'Lékárničku', 'Barel']) }),
         S('Telefon', 'text', { skryt: true, popis: 'Uvidí jen organizátor.' }),
         S('Poznámka', 'text', { viceRadku: true })
-      ]
-    }) },
-    { id: 'shlasovani', ikona: '🗳️', nazev: 'Hlasování o termínu a místě', popis: 'Výběr více termínů + seřazení', data: () => ({
-      nastaveni: { nadpis: 'Kdy a kam pojedeme?', ikona: '🗳️', popis: 'Zaškrtni všechny termíny, které ti vyhovují.', textOdeslat: 'Hlasovat', textDekujeme: 'Hlas uložen ✓', jmeno: 'povinne' },
-      otazky: [
-        S('Které termíny ti vyhovují?', 'vyber', { rezim: 'vice', povinna: true, moznosti: mozn(['Pá 12.–Ne 14. 6.', 'Pá 19.–Ne 21. 6.', 'Pá 26.–Ne 28. 6.']) }),
-        S('Seřaď řeky podle chuti', 'poradi', { moznosti: mozn(['Sázava', 'Otava', 'Vltava', 'Berounka']) }),
-        S('Nebo navrhni vlastní den', 'datum')
       ]
     }) }
   ];
@@ -3644,6 +3642,41 @@
     zprava('admin-msg', 'Šablona „' + s.nazev + '“ načtena – uprav ji podle sebe a ulož.');
   }
 
+  // jeden řádek šablony – stejný vzhled ve správě formuláře i při zakládání nového
+  function radekSablony(s, moz) {
+    const r = el('div', 'sab' + (moz.vybrana ? ' vybrana' : ''));
+    r.tabIndex = 0;
+    r.setAttribute('role', 'button');
+    if (moz.vybrana !== undefined) r.setAttribute('aria-pressed', moz.vybrana ? 'true' : 'false');
+    r.title = moz.titulek || '';
+    const t = el('span', 't');
+    t.append(el('b', null, s.nazev), el('small', null, s.popis !== undefined && s.prazdna ? s.popis : popisSablony(s)));
+    const akce = el('span', 'sab-akce');
+    (moz.akce || []).forEach(([ikona, popisek, fn, cls]) => {
+      akce.append(tlacitko('ikona mala' + (cls ? ' ' + cls : ''), ik(ikona), (e) => { e.stopPropagation(); fn(); }, popisek));
+    });
+    const i = el('span', 'i');
+    if (s.prazdna) i.append(ik('edit-form')); else i.textContent = s.ikona || '📋';
+    r.append(i, t, akce);
+    r.addEventListener('click', moz.klik);
+    r.addEventListener('keydown', (e) => { if (e.target === r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); moz.klik(); } });
+    return r;
+  }
+
+  // přejmenování a smazání šablony – uloz(seznam, hláška) uloží celý seznam
+  async function prejmenujSablonu(s, uloz) {
+    const nove = (prompt('Nový název šablony:', s.nazev) || '').trim().replace(/\s+/g, ' ');
+    if (!nove || nove === s.nazev) return;
+    await uloz(seznamSablon().map((x) => (x.id === s.id ? Object.assign({}, x, { nazev: nove }) : x)), 'Šablona přejmenována ✓');
+  }
+  async function smazSablonu(s, uloz) {
+    if (!confirm('Smazat šablonu „' + s.nazev + '“? Formuláře ani odpovědí se to nedotkne.')) return;
+    await uloz(seznamSablon().filter((x) => x.id !== s.id), 'Šablona smazána ✓');
+  }
+  function chybejiciVychozi(seznam) {
+    return VYCHOZI_SABLONY.filter((v) => !seznam.some((x) => x.id === v.id || x.nazev.toLocaleLowerCase('cs') === v.nazev.toLocaleLowerCase('cs')));
+  }
+
   async function ulozSablony(seznam, hotovo) {
     const ok = await adminAkce({ akce: 'admin_sablony', sablony: seznam }, hotovo);
     if (ok) vykresliSablony();
@@ -3693,44 +3726,24 @@
     const seznam = seznamSablon();
     box.append(el('span', 'lbl', 'Moje šablony'));
     if (!seznam.length) box.append(el('p', 'muted', 'Zatím žádné šablony.'));
-    seznam.forEach((s, i) => {
-      const r = el('div', 'sab');
-      r.tabIndex = 0;
-      r.setAttribute('role', 'button');
-      r.title = 'Použít šablonu „' + s.nazev + '“';
-      const t = el('span', 't');
-      t.append(el('b', null, s.nazev), el('small', null, popisSablony(s)));
-      const akce = el('span', 'sab-akce');
-      const stop = (fn) => (e) => { e.stopPropagation(); fn(); };
-      akce.append(
-        tlacitko('ikona mala', ik('pencil'), stop(async () => {
-          const nove = (prompt('Nový název šablony:', s.nazev) || '').trim().replace(/\s+/g, ' ');
-          if (!nove || nove === s.nazev) return;
-          const sez = seznamSablon().slice();
-          sez[i] = Object.assign({}, s, { nazev: nove });
-          await ulozSablony(sez, 'Šablona přejmenována ✓');
-        }), 'Přejmenovat'),
-        tlacitko('ikona mala', ik('refresh'), stop(async () => {
-          if (!kontrolaNavrhu()) return;
-          if (!confirm('Přepsat šablonu „' + s.nazev + '“ tím, co máš teď v editoru?')) return;
-          const sez = seznamSablon().slice();
-          sez[i] = sablonaZNavrhu(s.nazev, s);
-          await ulozSablony(sez, 'Šablona „' + s.nazev + '“ přepsána ✓');
-        }), 'Přepsat současným formulářem'),
-        tlacitko('ikona mala del', ik('trash'), stop(async () => {
-          if (!confirm('Smazat šablonu „' + s.nazev + '“? Formuláře ani odpovědí se to nedotkne.')) return;
-          const sez = seznamSablon().filter((x) => x !== s);
-          await ulozSablony(sez, 'Šablona smazána ✓');
-        }), 'Smazat šablonu')
-      );
-      r.append(el('span', 'i', s.ikona || '📋'), t, akce);
-      r.addEventListener('click', () => pouzijSablonu(s));
-      r.addEventListener('keydown', (e) => { if (e.target === r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pouzijSablonu(s); } });
-      box.append(r);
+    seznam.forEach((s) => {
+      box.append(radekSablony(s, {
+        titulek: 'Použít šablonu „' + s.nazev + '“',
+        klik: () => pouzijSablonu(s),
+        akce: [
+          ['pencil', 'Přejmenovat', () => prejmenujSablonu(s, ulozSablony)],
+          ['refresh', 'Přepsat současným formulářem', async () => {
+            if (!kontrolaNavrhu()) return;
+            if (!confirm('Přepsat šablonu „' + s.nazev + '“ tím, co máš teď v editoru?')) return;
+            await ulozSablony(seznamSablon().map((x) => (x.id === s.id ? sablonaZNavrhu(s.nazev, s) : x)), 'Šablona „' + s.nazev + '“ přepsána ✓');
+          }],
+          ['trash', 'Smazat šablonu', () => smazSablonu(s, ulozSablony), 'del']
+        ]
+      }));
     });
 
     // výchozí šablony, které správce smazal, jde vrátit
-    const chybi = VYCHOZI_SABLONY.filter((v) => !seznam.some((x) => x.id === v.id || x.nazev.toLocaleLowerCase('cs') === v.nazev.toLocaleLowerCase('cs')));
+    const chybi = chybejiciVychozi(seznam);
     if (chybi.length) {
       const b = tlacitko('btn small sec', ikText('undo', 'Vrátit výchozí šablony (' + chybi.length + ')'), async () => {
         await ulozSablony(seznam.concat(chybi.map(vychoziSablona)), 'Výchozí šablony vráceny ✓');
@@ -3949,10 +3962,14 @@
   $('ed-odkaz-kopirovat').addEventListener('click', () => kopirujOdkaz(F));
   $('ed-odkaz').addEventListener('focus', () => $('ed-odkaz').select());
 
-  $('admin-zpet').addEventListener('click', () => {
+  function naPrehled(e) {
+    if (e) e.preventDefault();
     if (navrh && navrhZmenen() && !confirm('Máš neuložené změny ve formuláři. Odejít bez uložení?')) return;
     location.href = uvodniStranka();
-  });
+  }
+  $('admin-zpet').addEventListener('click', naPrehled);
+  $('app-domu').href = uvodniStranka();
+  $('app-domu').addEventListener('click', naPrehled);
 
   // změna adresy formuláře (části odkazu)
   $('ed-adresa').addEventListener('input', () => {
@@ -3982,6 +3999,7 @@
   // ==================================================
   let prehledData = [];
   let pnAdresaRucne = false;
+  let pnSablona = '';      // id vybrané šablony, '' = prázdný formulář
 
   function slug(text) {
     return String(text || '').toLocaleLowerCase('cs').normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -4135,12 +4153,8 @@
     $('pn-bezhesla').checked = false;
     $('pn-heslo-p').hidden = false;
     zprava('pn-msg', '', true);
-    const sel = $('pn-sablona');
-    sel.textContent = '';
-    const prazdny = el('option', null, 'Prázdný formulář');
-    prazdny.value = '';
-    sel.append(prazdny);
-    seznamSablon().forEach((s, i) => { const o = el('option', null, 'Šablona: ' + s.nazev); o.value = String(i); sel.append(o); });
+    pnSablona = '';
+    vykresliPnSablony();
     nahledAdresy();
     $('p-novy').hidden = false;
     $('p-novy').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -4160,14 +4174,60 @@
     nahledAdresy();
   });
   $('pn-bezhesla').addEventListener('change', () => { $('pn-heslo-p').hidden = $('pn-bezhesla').checked; });
-  $('pn-sablona').addEventListener('change', () => {
-    // název podle šablony, když ještě není vyplněný
-    const s = seznamSablon()[Number($('pn-sablona').value)];
-    if (s && !$('pn-nazev').value.trim()) {
-      $('pn-nazev').value = (s.nastaveni && s.nastaveni.nadpis) || s.nazev;
-      $('pn-nazev').dispatchEvent(new Event('input'));
+  // výběr šablony pro nový formulář – stejné řádky jako ve správě formuláře
+  function vykresliPnSablony() {
+    const box = $('pn-sablony');
+    box.textContent = '';
+    const seznam = seznamSablon();
+    if (pnSablona && !seznam.some((x) => x.id === pnSablona)) pnSablona = '';
+    box.append(radekSablony({ prazdna: true, nazev: 'Prázdný formulář', popis: 'Bez otázek – vše si nastavíš sám' }, {
+      vybrana: pnSablona === '',
+      titulek: 'Začít s prázdným formulářem',
+      klik: () => { pnSablona = ''; vykresliPnSablony(); }
+    }));
+    seznam.forEach((s) => {
+      box.append(radekSablony(s, {
+        vybrana: pnSablona === s.id,
+        titulek: 'Začít ze šablony „' + s.nazev + '“',
+        klik: () => {
+          pnSablona = s.id;
+          // název podle šablony, když ještě není vyplněný
+          if (!$('pn-nazev').value.trim()) {
+            $('pn-nazev').value = (s.nastaveni && s.nastaveni.nadpis) || s.nazev;
+            $('pn-nazev').dispatchEvent(new Event('input'));
+          }
+          vykresliPnSablony();
+        },
+        akce: [
+          ['pencil', 'Přejmenovat', () => prejmenujSablonu(s, ulozSablonyPrehled)],
+          ['trash', 'Smazat šablonu', () => smazSablonu(s, ulozSablonyPrehled), 'del']
+        ]
+      }));
+    });
+    const chybi = chybejiciVychozi(seznam);
+    if (chybi.length) {
+      const b = tlacitko('btn small sec', ikText('undo', 'Vrátit výchozí šablony (' + chybi.length + ')'), () =>
+        ulozSablonyPrehled(seznam.concat(chybi.map(vychoziSablona)), 'Výchozí šablony vráceny ✓'));
+      b.style.marginTop = '2px';
+      box.append(b);
     }
-  });
+    box.append(el('p', 'muted pozn-sab', 'Nové šablony uložíš ve správě formuláře (Formulář → Šablony). Jsou společné pro všechny formuláře.'));
+  }
+
+  async function ulozSablonyPrehled(seznam, hotovo) {
+    zprava('pn-msg', '');
+    try {
+      const r = await prehledApi({ akce: 'admin_sablony', sablony: seznam });
+      if (!r.ok) { zprava('pn-msg', r.chyba || 'Něco se nepovedlo.', true); return false; }
+      prevezmiPrehled(r);
+      vykresliPnSablony();
+      toast(hotovo.replace(/ ✓$/, ''));
+      return true;
+    } catch (e) {
+      zprava('pn-msg', 'Nepodařilo se spojit se serverem.', true);
+      return false;
+    }
+  }
   $('pn-vytvorit').addEventListener('click', async () => {
     const nazev = $('pn-nazev').value.trim();
     const id = $('pn-adresa').value.trim();
@@ -4177,7 +4237,7 @@
     if (!ADRESA_RE.test(id)) { zprava('pn-msg', 'Adresa může mít 2–40 znaků: malá písmena bez diakritiky, číslice a pomlčky.', true); $('pn-adresa').focus(); return; }
     if (!bez && h.length < 4) { zprava('pn-msg', 'Zadej heslo pro vstup (aspoň 4 znaky), nebo zapni vstup bez hesla.', true); $('pn-heslo').focus(); return; }
     if (!bez && h.trim() !== h) { zprava('pn-msg', 'Heslo nesmí začínat ani končit mezerou.', true); return; }
-    const s = $('pn-sablona').value === '' ? null : seznamSablon()[Number($('pn-sablona').value)];
+    const s = pnSablona ? seznamSablon().find((x) => x.id === pnSablona) : null;
     const tl = $('pn-vytvorit');
     tl.disabled = true;
     zprava('pn-msg', '');
