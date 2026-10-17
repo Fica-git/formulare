@@ -187,8 +187,10 @@
   .hero h1, .hero p { padding-right: 48px; }
   .hero.s-odkazem { min-height: 122px; }
   .hero.s-odkazem #admin-otevrit { top: 64px; }
-  .hero h1 .hero-ic { width: .95em; height: .95em; margin-right: .3em; vertical-align: -.12em; stroke-width: 2.2; }
-  .hero h1 { position: relative; z-index: 1; font-size: 1.7rem; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.02em; overflow-wrap: anywhere; }
+  .hero h1 .hero-ic { width: .95em; height: .95em; margin-top: .1em; stroke-width: 2.2; }
+  .hero h1 { position: relative; z-index: 1; font-size: 1.7rem; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.02em; overflow-wrap: anywhere; display: flex; align-items: flex-start; gap: .3em; }
+  .hero h1 .hero-ik { flex: 0 0 auto; }
+  .hero h1 .hero-t { min-width: 0; }
   .hero p { position: relative; z-index: 1; margin: 0; opacity: .9; font-size: .98rem; white-space: pre-line; overflow-wrap: anywhere; }
   .hero p:empty { display: none; }
   .hero .skel { display: inline-block; height: 1em; width: 60%; border-radius: 8px; background: rgba(255, 255, 255, .25); vertical-align: middle; }
@@ -752,10 +754,14 @@
   .fc-akce .btn { display: inline-flex; align-items: center; text-decoration: none; }
   .fc-akce .fc-mezera { flex: 1; }
   .fc-akce .kratky { display: none; }
-  @media (max-width: 420px) {
+  @media (max-width: 540px) {
     .fc-akce .dlouhy { display: none; }
     .fc-akce .kratky { display: inline; }
-    .fc-akce { gap: 6px; }
+    .fc-akce { gap: 6px; flex-wrap: nowrap; }
+    .fc-akce .fc-mezera { display: none; }
+    .fc-akce .btn.small { flex: 1 1 0; min-width: 0; justify-content: center; padding: 8px 8px; white-space: nowrap; overflow: hidden; }
+    .fc-akce .btn.small .ic { margin-right: 5px; }
+    .fc-akce .ikona { width: 36px; height: 36px; }
   }
   .p-prazdno { text-align: center; padding: 28px 20px; }
   #pn-odkaz { display: block; margin-top: 2px; font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
@@ -1516,7 +1522,9 @@
 
   function vykresliHlavicku(info) {
     const h = $('hero-h1');
-    h.textContent = (info.ikona ? info.ikona + ' ' : '') + (info.nadpis || '');
+    h.textContent = '';
+    if (info.ikona) h.append(el('span', 'hero-ik', info.ikona));
+    h.append(el('span', 'hero-t', info.nadpis || ''));
     $('hero-p').textContent = info.popis || '';
     document.title = info.nadpis || 'Formulář';
     aplikujBarvu(info.barva);
