@@ -713,6 +713,10 @@
   .legenda-h { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 12px; font-size: .84rem; font-weight: 600; color: var(--muted); }
   .legenda-h span { display: inline-flex; align-items: center; }
   .stack { display: flex; gap: 2px; height: 26px; border-radius: 8px; overflow: hidden; background: var(--line); margin-top: 6px; }
+  :root { --mx-l: .5; }
+  :root[data-theme="dark"] { --mx-l: .8; }
+  .chip.mx-chip { color: var(--ink); }
+  .mx-odp { font-weight: 700; }
   .stack i { display: grid; place-items: center; font-style: normal; font-size: .76rem; font-weight: 700; color: #fff; min-width: 0; overflow: hidden; transition: flex-grow .6s cubic-bezier(.2, .8, .2, 1); text-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
 
   /* textové odpovědi */
@@ -2913,6 +2917,9 @@
   }
 
   // barva na škále záporné – neutrální – kladné (t = 0…1)
+  // umí prohlížeč odvodit barvu z jiné (oklch(from …))? starší prohlížeče dostanou barvu sloupce beze změny
+  const RELATIVNI_BARVY = !!(window.CSS && CSS.supports && CSS.supports('color', 'oklch(from red l c h)'));
+
   function barvaSkaly(t) {
     if (t <= 0.5) return 'color-mix(in oklab, var(--neg) ' + Math.round((1 - t * 2) * 100) + '%, var(--mid))';
     return 'color-mix(in oklab, var(--pos) ' + Math.round((t - 0.5) * 2 * 100) + '%, var(--mid))';
@@ -3263,9 +3270,14 @@
       r.append(top, st);
       if (vidiJmena && cel) {
         const plna = el('div', 'kdo-plna');
-        slIds.forEach((sid) => (kdo[sid] || []).forEach((o) => {
-          const c = el('span', 'chip chip-av');
-          c.append(avatar(o.jmeno), document.createTextNode(jmenoNebo(o.jmeno) + ': ' + nazevMoznosti(q, sid)));
+        slIds.forEach((sid, i) => (kdo[sid] || []).forEach((o) => {
+          const c = el('span', 'chip chip-av mx-chip');
+          const t = el('span', null, jmenoNebo(o.jmeno) + ': ');
+          // odpověď v barvě sloupce; světlost podle režimu, ať je čitelná i na tmavém pozadí
+          const odp = el('span', 'mx-odp', nazevMoznosti(q, sid));
+          odp.style.color = RELATIVNI_BARVY ? 'oklch(from ' + barva(i) + ' var(--mx-l) calc(c * 1.4) h)' : barva(i);
+          t.append(odp);
+          c.append(avatar(o.jmeno), t);
           plna.append(c);
         }));
         const kd = el('div', 'kdo');
