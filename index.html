@@ -581,6 +581,10 @@
   /* ---------- výsledky ---------- */
   .res-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
   .res-head h2 { margin: 0; }
+  .res-head h2 + .badge { margin-right: auto; }
+  #vysledky-prepnout { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+  #vysledky-prepnout .ic { margin: 0; transition: transform .2s; }
+  #vysledky-prepnout.otevreno .ic { transform: rotate(180deg); }
   .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; background: var(--accent-l); color: var(--accent-d); font-weight: 700; font-size: .88rem; font-variant-numeric: tabular-nums; }
   .res-title { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
   .res-title h2 { margin: 0; overflow-wrap: anywhere; }
@@ -1163,7 +1167,7 @@
 </defs></svg>
 <main>
   <div class="appbar">
-    <span class="info"><span class="vlevo"><a id="app-domu" class="domu" href="./" hidden title="Všechny formuláře" aria-label="Všechny formuláře"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></a><button type="button" class="ver" id="app-ver"><span class="v" id="app-verze">V2.2.0</span><span class="d" id="app-datum" aria-hidden="true">19. 10. 2026</span></button></span><span id="app-copyright">© 2026 Jan Fictum</span></span>
+    <span class="info"><span class="vlevo"><a id="app-domu" class="domu" href="./" hidden title="Všechny formuláře" aria-label="Všechny formuláře"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></a><button type="button" class="ver" id="app-ver"><span class="v" id="app-verze">V2.2.1</span><span class="d" id="app-datum" aria-hidden="true">19. 10. 2026</span></button></span><span id="app-copyright">© 2026 Jan Fictum</span></span>
     <button type="button" id="rezim" class="rezim" role="switch" aria-checked="true" aria-label="Tmavý režim" title="Tmavý režim"><span class="ik slunce" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span class="ik mesic" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span><span class="jezdec" aria-hidden="true"><svg class="ic slunce" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic mesic" aria-hidden="true"><use href="#i-moon"/></svg></span></button>
   </div>
   <header class="hero">
@@ -1281,7 +1285,7 @@
     <div class="sl-vys">
 
     <section class="card" id="vysledky-head">
-      <div class="res-head"><h2>Výsledky</h2><span id="vysledky-pocet" class="badge" hidden></span></div>
+      <div class="res-head"><h2>Výsledky</h2><span id="vysledky-pocet" class="badge" hidden></span><button type="button" class="btn small sec" id="vysledky-prepnout" hidden></button></div>
       <div id="souhrn" class="souhrn" hidden></div>
       <p id="vysledky-info" class="muted" style="margin:10px 0 0" hidden></p>
     </section>
@@ -1444,7 +1448,7 @@
   const API_URL = 'https://formulare-api.yoyomanfax.workers.dev';
 
   // verze aplikace (zobrazuje se v záhlaví nad formulářem)
-  const APP_VERZE = 'V2.2.0';
+  const APP_VERZE = 'V2.2.1';
   const APP_DATUM = '19. 10. 2026';
   const APP_AUTOR = 'Jan Fictum';
   // ==================================================
@@ -2801,7 +2805,7 @@
       mBox.append(r);
     });
 
-    $('app').classList.toggle('dva', nacteno && vidiVse);
+    $('app').classList.toggle('dva', nacteno && vidiVse && !sbaleneVysledky());
     vykresliVysledky();
     vykresliKdo();
   }
@@ -2842,6 +2846,21 @@
     box.hidden = false;
   }
 
+  // „Po odeslání“: výsledky jsou sbalené, dokud člověk neodešle vlastní odpověď (otevřít si je může i dřív)
+  let rozbalitRucne = null;   // null = podle toho, jestli už odeslal; true / false = sám klikl
+  const maVlastniOdpoved = () => odpovedi.some((o) => Object.prototype.hasOwnProperty.call(moje, o.id));
+  const sbalovatVysledky = () => N.vysledky === 'po_odeslani' && !admin && vidiVse && odpovedi.length > 0;
+  function sbaleneVysledky() {
+    if (!sbalovatVysledky()) return false;
+    return rozbalitRucne === null ? !maVlastniOdpoved() : !rozbalitRucne;
+  }
+  $('vysledky-prepnout').addEventListener('click', () => {
+    const otevrit = sbaleneVysledky();
+    rozbalitRucne = otevrit;
+    vykresli();
+    if (otevrit) $('vysledky-head').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
   function vykresliVysledky() {
     const box = $('vysledky');
     const info = $('vysledky-info');
@@ -2853,6 +2872,14 @@
     };
 
     $('souhrn').hidden = true;
+    const tlPrepnout = $('vysledky-prepnout');
+    const sbaleno = sbaleneVysledky();
+    tlPrepnout.hidden = !(nacteno && sbalovatVysledky());
+    tlPrepnout.classList.toggle('otevreno', !sbaleno);
+    tlPrepnout.textContent = '';
+    tlPrepnout.append(document.createTextNode(sbaleno ? 'Zobrazit' : 'Sbalit'), ik('chevron'));
+    tlPrepnout.setAttribute('aria-expanded', sbaleno ? 'false' : 'true');
+    box.hidden = sbaleno;
     if (!nacteno) { ukaz('Načítám odpovědi…'); pocet.hidden = true; box.textContent = ''; karty.clear(); return; }
     pocet.hidden = false;
     pocet.textContent = nOdpovedi(vidiVse ? odpovedi.length : pocetOdpovedi);
@@ -2867,9 +2894,13 @@
       ukaz('Zatím nikdo nic nevyplnil.');
       return;
     }
+    if (sbaleno) {
+      ukaz('Výsledky se ti rozbalí po odeslání tvé odpovědi. Podívat se můžeš i teď.');
+      return;
+    }
     vykresliSouhrn();
     pocet.hidden = true; // počet je v souhrnu
-    ukaz(admin && N.vysledky !== 'vsem' ? (N.vysledky === 'admin' ? 'Výsledky teď vidíš jen ty jako správce.' : 'Ostatní uvidí výsledky až po odeslání.') : '');
+    ukaz(admin && N.vysledky !== 'vsem' ? (N.vysledky === 'admin' ? 'Výsledky teď vidíš jen ty jako správce.' : 'Ostatní mají výsledky sbalené, dokud nevyplní.') : '');
 
     const seznam = aktivniOtazky().filter(odpovidaci)
       .concat(otazky.filter((q) => q.aktivni === false && q.typ !== 'nadpis'));
@@ -3463,7 +3494,7 @@
   const rozbaleniLide = new Set();
   function vykresliKdo() {
     const karta = $('kdo-card');
-    const ukazat = nacteno && vidiVse && vidiJmena && N.jmeno !== 'ne' && odpovedi.length > 0;
+    const ukazat = nacteno && vidiVse && vidiJmena && N.jmeno !== 'ne' && odpovedi.length > 0 && !sbaleneVysledky();
     karta.hidden = !ukazat;
     if (!ukazat) { kdoSig = null; return; }
     const hledat = $('kdo-hledat');
@@ -3627,6 +3658,7 @@
     const o = { id: id, cas: new Date().toISOString(), jmeno: jmeno, data: data, pending: true };
     odpovedi.push(o);
     moje[id] = token;
+    rozbalitRucne = null; // po odeslání se výsledky rozbalí samy
     const zaloha = { hodnoty: kopie(hodnoty), dotknute: kopie(dotknute) };
     vycistiFormular();
     zprava('msg', 'Odesláno, ukládám…');
@@ -3914,7 +3946,7 @@
     }));
     const vy = $('ed-vysledky');
     vy.textContent = '';
-    vy.append(segment([['vsem', 'Všichni', 'hned'], ['po_odeslani', 'Po odeslání', 'až vyplní'], ['admin', 'Jen správce', 'skryté']], n.vysledky, (v) => { n.vysledky = v; zmena(); }));
+    vy.append(segment([['vsem', 'Všichni', 'hned'], ['po_odeslani', 'Po odeslání', 'do té doby sbalené'], ['admin', 'Jen správce', 'skryté']], n.vysledky, (v) => { n.vysledky = v; zmena(); }));
   }
 
   function lokalniCas(iso) {
