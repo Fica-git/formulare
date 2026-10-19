@@ -75,6 +75,15 @@
   }
   [hidden] { display: none !important; }
 
+  /* na počítači: formulář vlevo, výsledky vpravo; přehled formulářů ve dvou sloupcích */
+  @media (min-width: 1000px) {
+    main:has(> #app.dva:not([hidden])), main:has(> #prehled:not([hidden])) { max-width: 1160px; }
+    #app.dva { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 0 20px; align-items: start; }
+    #p-seznam { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; align-items: start; }
+    main:has(> #app.dva:not([hidden])) .hero, main:has(> #prehled:not([hidden])) .hero { padding: 32px 34px; }
+    main:has(> #app.dva:not([hidden])) .hero h1, main:has(> #prehled:not([hidden])) .hero h1 { font-size: 2.15rem; }
+  }
+
   /* ikony – vlastní SVG, ať vypadají ve všech systémech stejně */
   .ic {
     width: 1.1em; height: 1.1em; flex: 0 0 auto; vertical-align: -.2em;
@@ -160,38 +169,59 @@
   .hero {
     position: relative;
     overflow: hidden;
+    isolation: isolate;
     margin: 4px 0 16px;
-    padding: 24px 22px;
-    border-radius: 24px;
+    padding: 26px 24px;
+    border-radius: 26px;
     color: #fff;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
-    box-shadow: var(--shadow);
-    transition: background .3s;
+    /* měkké světlo vlevo nahoře a hloubka vpravo dole přes základní přechod */
+    background:
+      radial-gradient(90% 130% at 0% 0%, rgba(255, 255, 255, .2) 0%, transparent 55%),
+      radial-gradient(70% 120% at 100% 100%, color-mix(in srgb, var(--accent-2) 70%, #000) 0%, transparent 70%),
+      linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    box-shadow: var(--shadow), inset 0 0 0 1px rgba(255, 255, 255, .14);
   }
+  /* rozostřená záře vpravo nahoře */
   .hero::after {
     content: "";
-    position: absolute;
-    right: -40px; top: -50px;
-    width: 180px; height: 180px;
+    position: absolute; z-index: -1;
+    right: -70px; top: -90px;
+    width: 280px; height: 280px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, .12);
+    background: color-mix(in srgb, var(--accent-2) 55%, #fff);
+    opacity: .35;
+    filter: blur(50px);
   }
+  /* jemná tečkovaná mřížka, která se doleva ztrácí */
   .hero::before {
     content: "";
-    position: absolute;
-    right: 40px; bottom: -70px;
-    width: 140px; height: 140px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .08);
+    position: absolute; z-index: -1; inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, .22) 1px, transparent 1.4px);
+    background-size: 18px 18px;
+    -webkit-mask-image: linear-gradient(105deg, transparent 45%, #000 100%);
+    mask-image: linear-gradient(105deg, transparent 45%, #000 100%);
   }
   .hero h1, .hero p { padding-right: 48px; }
-  .hero.s-odkazem { min-height: 122px; }
+  .hero.s-odkazem { min-height: 126px; }
   .hero.s-odkazem #admin-otevrit { top: 64px; }
-  .hero h1 .hero-ic { width: .95em; height: .95em; margin-top: .1em; stroke-width: 2.2; }
-  .hero h1 { position: relative; z-index: 1; font-size: 1.7rem; line-height: 1.15; margin: 0 0 6px; letter-spacing: -.02em; overflow-wrap: anywhere; display: flex; align-items: flex-start; gap: .3em; }
-  .hero h1 .hero-ik { flex: 0 0 auto; }
+  .hero h1 { position: relative; font-size: 1.75rem; font-weight: 800; line-height: 1.12; margin: 0; letter-spacing: -.03em; overflow-wrap: anywhere; display: flex; align-items: center; gap: 14px; }
+  /* ikona formuláře (emoji od organizátora) v prosklené dlaždici */
+  .hero h1 .hero-ik {
+    flex: 0 0 auto; display: grid; place-items: center;
+    width: 54px; height: 54px; border-radius: 17px;
+    background: rgba(255, 255, 255, .17);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3), 0 8px 20px rgba(0, 0, 0, .14);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    font-size: 1.7rem; line-height: 1; letter-spacing: 0;
+  }
+  .hero h1 .hero-ik .ic { width: 26px; height: 26px; stroke-width: 2.2; }
   .hero h1 .hero-t { min-width: 0; }
-  .hero p { position: relative; z-index: 1; margin: 0; opacity: .9; font-size: .98rem; white-space: pre-line; overflow-wrap: anywhere; }
+  .hero p { position: relative; margin: 12px 0 0; opacity: .92; font-size: 1rem; white-space: pre-line; overflow-wrap: anywhere; max-width: 62ch; }
+  @media (max-width: 480px) {
+    .hero { padding: 22px 18px; border-radius: 22px; }
+    .hero h1 { font-size: 1.45rem; gap: 12px; }
+    .hero h1 .hero-ik { width: 46px; height: 46px; border-radius: 14px; font-size: 1.45rem; }
+  }
   .hero p:empty { display: none; }
   .hero .skel { display: inline-block; height: 1em; width: 60%; border-radius: 8px; background: rgba(255, 255, 255, .25); vertical-align: middle; }
 
@@ -358,6 +388,10 @@
   .yn { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .yn .opt { justify-content: center; font-size: 1.05rem; }
   .yn .opt .mark { display: none; }
+  .yn .nm { display: inline-flex; align-items: center; gap: 8px; }
+  .yn .nm .ic { width: 20px; height: 20px; }
+  .yn-ano { color: var(--pos); }
+  .yn-ne { color: var(--neg); }
 
   /* hvězdičky */
   .stars { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
@@ -369,6 +403,7 @@
   .star.on { color: #f5b301; }
   .star.nahled { color: color-mix(in srgb, #f5b301 70%, transparent); }
   .star:active { transform: scale(.85); }
+  .star .ic { width: 32px; height: 32px; fill: currentColor; stroke: currentColor; stroke-width: 1.2; vertical-align: middle; }
   .stars .stav { margin-left: 10px; color: var(--muted); font-weight: 600; font-size: .92rem; }
 
   /* smajlíci */
@@ -381,7 +416,9 @@
     background: var(--tile); color: var(--ink); font: inherit; cursor: pointer; touch-action: manipulation;
     transition: transform .12s, border-color .15s, background .15s, filter .15s, opacity .15s;
   }
-  .pick .e { font-size: 1.9rem; line-height: 1.1; }
+  .smajl { display: inline-block; width: 1em; height: 1em; line-height: 0; }
+  .smajl svg { display: block; width: 100%; height: 100%; }
+  .pick .e { font-size: 2.1rem; }
   .pick .t { font-size: .72rem; color: var(--muted); font-weight: 600; text-align: center; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
   @media (max-width: 480px) {
     /* na mobilu jen smajlíci, popisek vybraného je pod nimi */
@@ -571,7 +608,7 @@
   /* jméno s avatarem (u čísel) */
   .sum .top:has(> .s-av) { align-items: center; }
   .sum .top > .s-av { display: inline-flex; align-items: center; gap: 8px; }
-  .sum .top > .s-av .avatar { width: 24px; height: 24px; font-size: .74rem; }
+  .sum .top > .s-av .avatar { width: 24px; height: 24px; font-size: .6rem; }
   .sum .bar { height: 8px; margin-top: 7px; border-radius: 99px; background: var(--line); overflow: hidden; }
   .sum .bar i {
     display: block;
@@ -593,9 +630,12 @@
   .klik:focus-visible { outline: 3px solid var(--accent); outline-offset: 0; }
   .kdo { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
   .avs { display: flex; padding-left: 6px; }
-  .avs .avatar { width: 24px; height: 24px; font-size: .7rem; margin-left: -6px; box-shadow: 0 0 0 2px var(--card); }
+  .avs .avatar { width: 24px; height: 24px; font-size: .58rem; margin-left: -6px; box-shadow: 0 0 0 2px var(--card); }
   .kdo .vic { color: var(--muted); font-size: .8rem; font-weight: 600; }
   .kdo .sip { margin-left: auto; color: var(--muted); font-size: .8rem; transition: transform .2s; }
+  .sip { display: inline-grid; place-items: center; }
+  .sip .ic { width: 15px; height: 15px; }
+  .split .popisky .ic { width: 15px; height: 15px; vertical-align: -2px; }
   .klik.otevreno .kdo .sip { transform: rotate(180deg); }
   .kdo-plna { display: none; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .klik.otevreno .kdo-plna { display: flex; }
@@ -610,6 +650,7 @@
     color: #fff;
     font-weight: 700;
     text-transform: uppercase;
+    font-size: .86rem; letter-spacing: -.02em; line-height: 1; white-space: nowrap;
   }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
   .chip {
@@ -655,12 +696,21 @@
   .tile b .j { font-size: .85rem; color: var(--muted); font-weight: 600; margin-left: 3px; }
   .tile.hlavni { background: var(--accent-l); }
   .tile.hlavni b { color: var(--accent-d); }
+  /* souhrn nad výsledky */
+  /* počet sloupců podle šířky karty (ne obrazovky): 4 vedle sebe jen když se text vejde, jinak 2 × 2 */
+  .souhrn { container-type: inline-size; }
+  .souhrn .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 14px 0 0; }
+  @container (min-width: 540px) { .souhrn .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .souhrn .tile b { font-size: 1.12rem; }
+  .souhrn .tile.hlavni b { font-size: 1.35rem; }
 
   /* hvězdičkové hodnocení */
   .rating { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
   .rating .velke { flex: 0 0 auto; text-align: center; min-width: 110px; }
   .rating .velke b { display: block; font-size: 2.6rem; line-height: 1; font-variant-numeric: tabular-nums; }
-  .rating .velke .hv { color: #f5b301; letter-spacing: 1px; font-size: 1.05rem; }
+  .rating .velke .hv { display: flex; justify-content: center; gap: 1px; margin: 6px 0 2px; color: #f5b301; }
+  .rating .velke .hv .ic { width: 16px; height: 16px; stroke-width: 1.6; }
+  .rating .velke .hv .ic.plna { fill: currentColor; }
   .rating .velke small { display: block; color: var(--muted); font-size: .8rem; font-weight: 600; }
   .rating .bars { flex: 1 1 220px; min-width: 0; }
   .rating .sum { padding: 4px 8px; }
@@ -689,7 +739,7 @@
   .col-kdo-h span:last-child { color: var(--muted); white-space: nowrap; }
   .col-kdo .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .col-kdo .chip, .chip.chip-av { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; font-weight: 600; }
-  .col-kdo .chip .avatar, .chip.chip-av .avatar { width: 22px; height: 22px; font-size: .72rem; }
+  .col-kdo .chip .avatar, .chip.chip-av .avatar { width: 22px; height: 22px; font-size: .56rem; }
   .kdo-hlava { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-bottom: 14px; }
   .kdo-hlava h2 { margin: 0; }
   .razeni { display: inline-flex; padding: 3px; gap: 2px; border-radius: 99px; background: var(--tile); border: 1px solid var(--line); }
@@ -701,7 +751,7 @@
   @media (max-width: 380px) { .razeni button { padding: 6px 9px; font-size: .76rem; } .razeni button .ic { display: none; } }
   .col-lbls { display: flex; gap: 6px; margin-top: 6px; }
   .col-lbls span { flex: 1 1 0; min-width: 0; text-align: center; font-size: .8rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .col-lbls.emoji span { font-size: 1.35rem; color: inherit; }
+  .col-lbls.emoji span { display: flex; justify-content: center; font-size: 1.5rem; color: inherit; }
   .col[title] { cursor: help; }
 
   .smajl-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
@@ -722,7 +772,7 @@
   /* textové odpovědi */
   .quotes { display: grid; gap: 8px; }
   .quote { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 14px; background: var(--tile); }
-  .quote .avatar { width: 28px; height: 28px; font-size: .78rem; }
+  .quote .avatar { width: 28px; height: 28px; font-size: .66rem; }
   .quote .t { min-width: 0; white-space: pre-line; overflow-wrap: anywhere; }
   .quote .t small { display: block; color: var(--muted); font-weight: 600; font-size: .8rem; }
   .podnadpis { margin: 16px 0 6px; font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
@@ -745,6 +795,26 @@
   .person .souhrn { margin-top: 3px; color: var(--muted); font-size: .88rem; overflow-wrap: anywhere; }
   .person > .sip { margin-left: auto; color: var(--muted); font-size: .8rem; padding-top: 4px; transition: transform .2s; }
   .person.otevreno > .sip { transform: rotate(180deg); }
+
+  /* načítání – šedé obrysy obsahu s jemným přeletem světla */
+  .sk {
+    display: block; border-radius: 12px;
+    background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 45%, var(--card)) 50%, var(--line) 75%);
+    background-size: 300% 100%;
+    animation: skel 1.4s ease-in-out infinite;
+  }
+  @keyframes skel { from { background-position: 100% 0; } to { background-position: 0 0; } }
+  .sk-lbl { width: 38%; height: 14px; margin: 4px 0 10px; border-radius: 7px; }
+  .sk-lbl ~ .sk-lbl { margin-top: 22px; }
+  .sk-pole { height: 52px; border-radius: 14px; }
+  .sk-volba { height: 54px; border-radius: 16px; margin-bottom: 10px; }
+  .sk-tlac { height: 54px; border-radius: 14px; margin-top: 18px; }
+  .sk-fcard { display: flex; align-items: center; gap: 12px; }
+  .sk-fcard .sk-ikona { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 14px; }
+  .sk-fcard .sk-texty { flex: 1; display: grid; gap: 8px; }
+  .sk-fcard .sk-r1 { width: 60%; height: 16px; border-radius: 8px; }
+  .sk-fcard .sk-r2 { width: 35%; height: 12px; border-radius: 6px; }
+  .sk-meta { width: 70%; height: 12px; margin-top: 16px; border-radius: 6px; }
 
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
@@ -1070,6 +1140,7 @@
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
   <symbol id="i-t-vyber" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></symbol>
   <symbol id="i-t-ano_ne" viewBox="0 0 24 24"><path d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></symbol>
+  <symbol id="i-palec-dolu" viewBox="0 0 24 24"><path d="M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></symbol>
   <symbol id="i-t-hvezdy" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01Z"/></symbol>
   <symbol id="i-t-smajlik" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></symbol>
   <symbol id="i-t-skala" viewBox="0 0 24 24"><path d="m12 14 4-4M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
@@ -1092,7 +1163,7 @@
 </defs></svg>
 <main>
   <div class="appbar">
-    <span class="info"><span class="vlevo"><a id="app-domu" class="domu" href="./" hidden title="Všechny formuláře" aria-label="Všechny formuláře"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></a><button type="button" class="ver" id="app-ver"><span class="v" id="app-verze">V2.1.1</span><span class="d" id="app-datum" aria-hidden="true">17. 10. 2026</span></button></span><span id="app-copyright">© 2026 Jan Fictum</span></span>
+    <span class="info"><span class="vlevo"><a id="app-domu" class="domu" href="./" hidden title="Všechny formuláře" aria-label="Všechny formuláře"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg></a><button type="button" class="ver" id="app-ver"><span class="v" id="app-verze">V2.2.0</span><span class="d" id="app-datum" aria-hidden="true">19. 10. 2026</span></button></span><span id="app-copyright">© 2026 Jan Fictum</span></span>
     <button type="button" id="rezim" class="rezim" role="switch" aria-checked="true" aria-label="Tmavý režim" title="Tmavý režim"><span class="ik slunce" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></span><span class="ik mesic" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg></span><span class="jezdec" aria-hidden="true"><svg class="ic slunce" aria-hidden="true"><use href="#i-sun"/></svg><svg class="ic mesic" aria-hidden="true"><use href="#i-moon"/></svg></span></button>
   </div>
   <header class="hero">
@@ -1112,7 +1183,11 @@
     </form>
   </section>
 
-  <section id="nacitam" class="card"><p class="muted" style="margin:0">Načítám…</p></section>
+  <section id="nacitam" class="card" aria-busy="true" aria-label="Načítám…">
+    <span class="sk sk-lbl"></span><span class="sk sk-pole"></span>
+    <span class="sk sk-lbl"></span><span class="sk sk-volba"></span><span class="sk sk-volba"></span>
+    <span class="sk sk-tlac"></span>
+  </section>
 
   <!-- ODKAZ NA NEEXISTUJÍCÍ FORMULÁŘ -->
   <section id="nenalezen" class="card" hidden>
@@ -1167,6 +1242,7 @@
   <!-- APLIKACE -->
   <div id="app" hidden>
 
+    <div class="sl-form">
     <div id="zavreno" class="banner" hidden><svg class="ic" aria-hidden="true"><use href="#i-circle-x"/></svg><span>Formulář je uzavřený. Teď už nejde nic odeslat ani měnit.</span></div>
     <div id="uzaverka" class="banner info" hidden><svg class="ic" aria-hidden="true"><use href="#i-alarm"/></svg><span id="uzaverka-t"></span></div>
 
@@ -1200,9 +1276,13 @@
       <p class="muted" style="margin:-4px 0 12px">Tady je můžeš upravit nebo smazat – jen do obnovení stránky.</p>
       <div id="moje-list"></div>
     </section>
+    </div>
+
+    <div class="sl-vys">
 
     <section class="card" id="vysledky-head">
       <div class="res-head"><h2>Výsledky</h2><span id="vysledky-pocet" class="badge" hidden></span></div>
+      <div id="souhrn" class="souhrn" hidden></div>
       <p id="vysledky-info" class="muted" style="margin:10px 0 0" hidden></p>
     </section>
     <div id="vysledky"></div>
@@ -1219,6 +1299,7 @@
       <div class="hledat" id="kdo-hledat-box" hidden><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input type="text" id="kdo-hledat" placeholder="Hledat podle jména…" autocomplete="off"></div>
       <div id="kdo"></div>
     </section>
+    </div>
   </div>
 
 </main>
@@ -1363,8 +1444,8 @@
   const API_URL = 'https://formulare-api.yoyomanfax.workers.dev';
 
   // verze aplikace (zobrazuje se v záhlaví nad formulářem)
-  const APP_VERZE = 'V2.1.1';
-  const APP_DATUM = '17. 10. 2026';
+  const APP_VERZE = 'V2.2.0';
+  const APP_DATUM = '19. 10. 2026';
   const APP_AUTOR = 'Jan Fictum';
   // ==================================================
 
@@ -1519,10 +1600,23 @@
   }
   const ikonaOtazky = (q) => (TYPY[q.typ] || TYPY.text).ikona;
 
+  // smajlíci jako SVG (barva tváře + oči + pusa), ať vypadají všude stejně
   const SMAJLICI = [
-    { e: '😠', t: 'Velmi nespokojen/a' }, { e: '🙁', t: 'Nespokojen/a' }, { e: '😐', t: 'Tak napůl' },
-    { e: '🙂', t: 'Spokojen/a' }, { e: '😍', t: 'Nadšen/a' }
+    { t: 'Velmi nespokojen/a', b: '#ef5350', k: '<circle cx="12.5" cy="15" r="2.2"/><circle cx="23.5" cy="15" r="2.2"/><path d="M9 10.5 15 12.5M27 10.5 21 12.5M11.5 26.5Q18 20 24.5 26.5" fill="none"/>' },
+    { t: 'Nespokojen/a', b: '#ff9a3c', k: '<circle cx="12.5" cy="14.5" r="2.2"/><circle cx="23.5" cy="14.5" r="2.2"/><path d="M12 25.5Q18 21.5 24 25.5" fill="none"/>' },
+    { t: 'Tak napůl', b: '#f7c948', k: '<circle cx="12.5" cy="14.5" r="2.2"/><circle cx="23.5" cy="14.5" r="2.2"/><path d="M12 24h12" fill="none"/>' },
+    { t: 'Spokojen/a', b: '#9ccc65', k: '<circle cx="12.5" cy="14.5" r="2.2"/><circle cx="23.5" cy="14.5" r="2.2"/><path d="M11.5 21.5Q18 28 24.5 21.5" fill="none"/>' },
+    { t: 'Nadšen/a', b: '#3fb871', k: '<path d="M9.5 15.5Q12.5 11.5 15.5 15.5M20.5 15.5Q23.5 11.5 26.5 15.5" fill="none"/><path d="M10.5 20.5h15Q24.5 29 18 29T10.5 20.5Z"/>' }
   ];
+  function smajlik(i, cls) {
+    const s = SMAJLICI[i];
+    const sp = el('span', 'smajl' + (cls ? ' ' + cls : ''));
+    sp.innerHTML = '<svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="17" fill="' + s.b + '"/>' +
+      '<g fill="#2a2116" stroke="#2a2116" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + s.k + '</g></svg>';
+    return sp;
+  }
+  // hvězdička: plná (zapnutá) nebo jen obrys
+  const hvezda = (plna) => ik('t-hvezdy', 'hv' + (plna ? ' plna' : ''));
   const SLOUPCE_PREDVOLBY = {
     'Souhlas': ['Rozhodně nesouhlasím', 'Spíš nesouhlasím', 'Nevím', 'Spíš souhlasím', 'Rozhodně souhlasím'],
     'Spokojenost': ['Velmi špatné', 'Špatné', 'Ujde to', 'Dobré', 'Výborné'],
@@ -1576,6 +1670,12 @@
     const u = document.createElementNS(SVGNS, 'use');
     u.setAttribute('href', '#i-' + nazev);
     s.append(u);
+    return s;
+  }
+  // šipka rozbalení (otočí se přes CSS)
+  function sipka() {
+    const s = el('span', 'sip');
+    s.append(ik('chevron'));
     return s;
   }
   // ikona + text (pro tlačítka)
@@ -1635,8 +1735,15 @@
     for (const ch of String(jmeno || '').trim().toLowerCase()) hash = (hash * 31 + ch.charCodeAt(0)) % 360;
     return 'hsl(' + hash + ' 52% 42%)';
   }
+  // iniciály: „Jakub Černý“ → JČ, jedno slovo → první písmeno
+  function inicialy(jmeno) {
+    const slova = String(jmeno || '').trim().split(/\s+/).filter(Boolean);
+    if (!slova.length) return '?';
+    const prvni = (s) => Array.from(s)[0];
+    return slova.length > 1 ? prvni(slova[0]) + prvni(slova[slova.length - 1]) : prvni(slova[0]);
+  }
   function avatar(jmeno) {
-    const a = el('span', 'avatar', String(jmeno || '').trim()[0] || '?');
+    const a = el('span', 'avatar', inicialy(jmeno));
     a.style.background = jmeno ? barvaJmena(jmeno) : 'var(--muted)';
     a.title = jmeno || 'Anonym';
     return a;
@@ -2214,8 +2321,9 @@
   // --- ano / ne ---
   function poleAnoNe(q, telo) {
     const box = el('div', 'yn');
-    const prvky = [[true, '👍 Ano'], [false, '👎 Ne']].map(([v, t]) => {
+    const prvky = [[true, 'Ano', 't-ano_ne'], [false, 'Ne', 'palec-dolu']].map(([v, t, ikona]) => {
       const d = dlazdice('radio', 'yn_' + q.id, t, true);
+      d.l.querySelector('.nm').prepend(ik(ikona, v ? 'yn-ano' : 'yn-ne'));
       d.inp.addEventListener('click', () => { if (hodnoty[q.id] === v && d.wasOn) nastavHodnotu(q, undefined); });
       d.inp.addEventListener('change', () => nastavHodnotu(q, v));
       box.append(d.l);
@@ -2237,7 +2345,7 @@
     box.setAttribute('role', 'radiogroup');
     const hvezdy = [];
     for (let i = 1; i <= max; i++) {
-      const b = tlacitko('star', '★', () => nastavHodnotu(q, hodnoty[q.id] === i ? undefined : i), i + ' z ' + max);
+      const b = tlacitko('star', hvezda(true), () => nastavHodnotu(q, hodnoty[q.id] === i ? undefined : i), i + ' z ' + max);
       b.setAttribute('role', 'radio');
       b.addEventListener('pointerenter', () => nahled(i));
       b.addEventListener('pointerleave', () => nahled(0));
@@ -2262,7 +2370,7 @@
     const tl = SMAJLICI.map((s, i) => {
       const b = tlacitko('pick', undefined, () => nastavHodnotu(q, hodnoty[q.id] === i + 1 ? undefined : i + 1), s.t);
       b.setAttribute('role', 'radio');
-      b.append(el('span', 'e', s.e), el('span', 't', s.t));
+      b.append(smajlik(i, 'e'), el('span', 't', s.t));
       box.append(b);
       return b;
     });
@@ -2646,9 +2754,9 @@
         const m = mapaVyberu(v);
         return Object.keys(m).map((id) => (q.rezim === 'pocet' || m[id] > 1 ? m[id] + '× ' : '') + nazevMoznosti(q, id));
       }
-      case 'ano_ne': return [v ? '👍 Ano' : '👎 Ne'];
+      case 'ano_ne': return [v ? 'Ano' : 'Ne'];
       case 'hvezdy': return ['★'.repeat(v) + '☆'.repeat(Math.max(0, (q.max || 5) - v))];
-      case 'smajlik': return SMAJLICI[v - 1] ? [SMAJLICI[v - 1].e + ' ' + SMAJLICI[v - 1].t] : [String(v)];
+      case 'smajlik': return SMAJLICI[v - 1] ? [SMAJLICI[v - 1].t] : [String(v)];
       case 'skala': return [v + ' / ' + q.do];
       case 'cislo': return [fmt(v, 4) + (q.jednotka ? ' ' + q.jednotka : '')];
       case 'telefon': return [String(v)];
@@ -2693,12 +2801,46 @@
       mBox.append(r);
     });
 
+    $('app').classList.toggle('dva', nacteno && vidiVse);
     vykresliVysledky();
     vykresliKdo();
   }
 
   // ---------- výsledky ----------
   const karty = new Map(); // qid -> {el, sig}
+
+  // „před 5 min“, „před 2 h“, „včera“…
+  function predChvili(iso) {
+    const ms = Date.now() - Date.parse(iso);
+    if (!(ms >= 0)) return '–';
+    const min = Math.floor(ms / 60000);
+    if (min < 1) return 'právě teď';
+    if (min < 60) return 'před ' + min + ' min';
+    const h = Math.floor(min / 60);
+    if (h < 24) return 'před ' + h + ' h';
+    const d = Math.floor(h / 24);
+    return d === 1 ? 'včera' : 'před ' + d + ' dny';
+  }
+
+  // souhrn nad výsledky: počet, poslední odpověď, dnes, uzávěrka / stav
+  function vykresliSouhrn() {
+    const box = $('souhrn');
+    const potvrzene = odpovedi.filter((o) => !o.pending);
+    const posledni = potvrzene.reduce((m, o) => (o.cas > m ? o.cas : m), '');
+    const dnes = new Date().toDateString();
+    const dnesPocet = potvrzene.filter((o) => new Date(o.cas).toDateString() === dnes).length;
+    const u = N.uzaverka ? Date.parse(N.uzaverka) : NaN;
+    const otev = jeOtevrenoTed();
+    const posledniDlazdice = otev && !isNaN(u) ? ['Uzávěrka', 'za ' + zaJakDlouho(u - Date.now())] : ['Stav', otev ? 'Otevřeno' : 'Uzavřeno'];
+    box.textContent = '';
+    box.append(dlazdiceCisel([
+      [pl(odpovedi.length, 'Odpověď', 'Odpovědi', 'Odpovědí'), String(odpovedi.length), '', true],
+      ['Poslední', posledni ? predChvili(posledni) : '–'],
+      ['Dnes', String(dnesPocet)],
+      posledniDlazdice
+    ]));
+    box.hidden = false;
+  }
 
   function vykresliVysledky() {
     const box = $('vysledky');
@@ -2710,6 +2852,7 @@
       if (text && admin && N.vysledky !== 'vsem' && nacteno && vidiVse) { info.classList.add('info-ic'); info.prepend(ik('lock')); }
     };
 
+    $('souhrn').hidden = true;
     if (!nacteno) { ukaz('Načítám odpovědi…'); pocet.hidden = true; box.textContent = ''; karty.clear(); return; }
     pocet.hidden = false;
     pocet.textContent = nOdpovedi(vidiVse ? odpovedi.length : pocetOdpovedi);
@@ -2724,6 +2867,8 @@
       ukaz('Zatím nikdo nic nevyplnil.');
       return;
     }
+    vykresliSouhrn();
+    pocet.hidden = true; // počet je v souhrnu
     ukaz(admin && N.vysledky !== 'vsem' ? (N.vysledky === 'admin' ? 'Výsledky teď vidíš jen ty jako správce.' : 'Ostatní uvidí výsledky až po odeslání.') : '');
 
     const seznam = aktivniOtazky().filter(odpovidaci)
@@ -2808,7 +2953,7 @@
     osoby.slice(0, 7).forEach((x) => avs.append(avatar(x.o.jmeno)));
     kdo.append(avs);
     if (osoby.length > 7) kdo.append(el('span', 'vic', '+' + (osoby.length - 7)));
-    kdo.append(el('span', 'sip', '▾'));
+    kdo.append(sipka());
     const plna = el('div', 'kdo-plna');
     osoby.forEach((x) => plna.append(el('span', 'chip', jmenoNebo(x.o.jmeno) + (x.n > 1 ? ' ' + x.n + '×' : ''))));
     radek.append(kdo, plna);
@@ -2891,7 +3036,8 @@
       if (it.barva) b.style.background = it.barva;
       c.append(b);
       cols.append(c);
-      const l = el('span', null, it.popisek);
+      const l = el('span', null, it.uzel ? undefined : it.popisek);
+      if (it.uzel) { l.append(it.uzel); l.title = it.popisek; }
       lbls.append(l);
       prvky.push([c, l]);
       if (vidiJmena && it.osoby && it.osoby.length) {
@@ -3022,8 +3168,8 @@
     const cel = ano + ne || 1;
     const w = el('div', 'split');
     const pop = el('div', 'popisky');
-    const l = el('div'); l.append(el('b', null, pct(ano / cel)), el('span', null, ' 👍 Ano · ' + ano));
-    const p = el('div'); p.append(el('span', null, ne + ' · Ne 👎 '), el('b', null, pct(ne / cel)));
+    const l = el('div'); l.append(el('b', null, pct(ano / cel)), el('span', null, ' '), ik('t-ano_ne', 'yn-ano'), el('span', null, ' Ano · ' + ano));
+    const p = el('div'); p.append(el('span', null, ne + ' · Ne '), ik('palec-dolu', 'yn-ne'), el('span', null, ' '), el('b', null, pct(ne / cel)));
     pop.append(l, p);
     const pruh = el('div', 'pruh');
     const ia = el('i', 'ano'); ia.style.flexGrow = 0; ia.dataset.g = ano; ia.title = 'Ano: ' + ano;
@@ -3048,7 +3194,9 @@
     const w = el('div', 'rating');
     const velke = el('div', 'velke');
     const zaokr = Math.round(prumer);
-    velke.append(el('b', null, fmt(prumer)), el('span', 'hv', '★'.repeat(zaokr) + '☆'.repeat(Math.max(0, max - zaokr))), el('small', null, 'z ' + max + ' · ' + hodn.length + ' ' + pl(hodn.length, 'hodnocení', 'hodnocení', 'hodnocení')));
+    const hv = el('span', 'hv');
+    for (let i = 1; i <= max; i++) hv.append(hvezda(i <= zaokr));
+    velke.append(el('b', null, fmt(prumer)), hv, el('small', null, 'z ' + max + ' · ' + hodn.length + ' ' + pl(hodn.length, 'hodnocení', 'hodnocení', 'hodnocení')));
     const items = [];
     for (let i = max; i >= 1; i--) items.push({ nazev: i + ' ★', n: (kdo[i] || []).length, osoby: kdo[i] });
     const b = pruhy(items);
@@ -3066,10 +3214,10 @@
     const s = SMAJLICI[Math.min(4, Math.max(0, Math.round(prumer) - 1))];
     const t = el('div');
     t.append(el('b', null, 'Ø ' + fmt(prumer) + ' / 5'), el('small', null, 'Spokojených ' + pct(spokojeni / (hodn.length || 1)) + ' · ' + s.t.toLowerCase()));
-    top.append(el('span', 'e', s.e), t);
+    top.append(smajlik(SMAJLICI.indexOf(s), 'e'), t);
     w.append(top);
     w.append(sloupce(SMAJLICI.map((sm, i) => ({
-      popisek: sm.e, nadpis: sm.e + ' ' + sm.t, osoby: kdo[i + 1] || [], n: (kdo[i + 1] || []).length, barva: barvaSkaly(i / 4),
+      popisek: sm.t, uzel: smajlik(i), nadpis: sm.t, osoby: kdo[i + 1] || [], n: (kdo[i + 1] || []).length, barva: barvaSkaly(i / 4),
       title: sm.t + ': ' + (kdo[i + 1] || []).length + (jmenaTitulek(kdo[i + 1]) ? ' – ' + jmenaTitulek(kdo[i + 1]) : '')
     })), true));
     return w;
@@ -3281,7 +3429,7 @@
           plna.append(c);
         }));
         const kd = el('div', 'kdo');
-        kd.append(el('span', 'vic', 'Kdo co'), el('span', 'sip', '▾'));
+        kd.append(el('span', 'vic', 'Kdo co'), sipka());
         r.append(kd, plna);
         r.classList.add('klik');
         r.tabIndex = 0;
@@ -3374,7 +3522,7 @@
         const prepni = () => { if (rozbaleniLide.has(o.id)) rozbaleniLide.delete(o.id); else rozbaleniLide.add(o.id); nastav(); };
         r.addEventListener('click', prepni);
         r.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); prepni(); } });
-        r.append(el('span', 'sip', '▾'));
+        r.append(sipka());
         nastav();
       }
       box.append(r);
@@ -4170,10 +4318,10 @@
         sub.append(el('p', 'muted', 'Nadpis rozdělí formulář na části. Nemá žádnou odpověď.'));
         break;
       case 'smajlik':
-        sub.append(el('p', 'muted', 'Pět smajlíků od 😠 po 😍. Ve výsledcích průměr a rozložení.'));
+        sub.append(el('p', 'muted', 'Pět smajlíků od zamračeného po nadšeného. Ve výsledcích průměr a rozložení.'));
         break;
       case 'ano_ne':
-        sub.append(el('p', 'muted', 'Dvě velká tlačítka 👍 Ano / 👎 Ne. Ve výsledcích poměr a kdo jak hlasoval.'));
+        sub.append(el('p', 'muted', 'Dvě velká tlačítka Ano / Ne s palcem nahoru a dolů. Ve výsledcích poměr a kdo jak hlasoval.'));
         break;
       case 'datum':
         sub.append(el('p', 'muted', 'Výběr dne v kalendáři. Ve výsledcích přehled dnů a kdo který zvolil.'));
@@ -4970,10 +5118,21 @@
     ['login', 'nacitam', 'app', 'admin-otevrit', 'kopirovat-odkaz'].forEach((id) => { $(id).hidden = true; });
     $('prehled').hidden = false;
     vykresliHlavicku({ nadpis: 'Formuláře', ikona: '', popis: 'Přehled všech formulářů. Vidí ho jen správce.', barva: 'tyrkys' });
-    $('hero-h1').prepend(ik('layers', 'hero-ic'));
+    const ikona = el('span', 'hero-ik');
+    ikona.append(ik('layers'));
+    $('hero-h1').prepend(ikona);
     document.title = 'Formuláře';
     ukazPrehled();
-    if (admin) nactiPrehled();
+    if (admin) {
+      // než přijde přehled, ukáže se obrys dvou karet
+      for (let i = 0; i < 2; i++) {
+        const c = el('section', 'card');
+        c.setAttribute('aria-busy', 'true');
+        c.innerHTML = '<div class="sk-fcard"><span class="sk sk-ikona"></span><span class="sk-texty"><span class="sk sk-r1"></span><span class="sk sk-r2"></span></span></div><span class="sk sk-meta"></span>';
+        $('p-seznam').append(c);
+      }
+      nactiPrehled();
+    }
     setInterval(() => { if (admin && !document.hidden && $('p-novy').hidden) nactiPrehled(true); }, 30000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden && admin && $('p-novy').hidden) nactiPrehled(true); });
   }
