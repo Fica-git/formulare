@@ -568,6 +568,10 @@
   .sum { padding: 9px 0; border-radius: 12px; }
   .sum .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
   .sum .top > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  /* jméno s avatarem (u čísel) */
+  .sum .top:has(> .s-av) { align-items: center; }
+  .sum .top > .s-av { display: inline-flex; align-items: center; gap: 8px; }
+  .sum .top > .s-av .avatar { width: 24px; height: 24px; font-size: .74rem; }
   .sum .bar { height: 8px; margin-top: 7px; border-radius: 99px; background: var(--line); overflow: hidden; }
   .sum .bar i {
     display: block;
@@ -684,8 +688,8 @@
   .col-kdo-h { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; font-size: .88rem; font-weight: 700; }
   .col-kdo-h span:last-child { color: var(--muted); white-space: nowrap; }
   .col-kdo .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .col-kdo .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; font-weight: 600; }
-  .col-kdo .chip .avatar { width: 22px; height: 22px; font-size: .72rem; }
+  .col-kdo .chip, .chip.chip-av { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; font-weight: 600; }
+  .col-kdo .chip .avatar, .chip.chip-av .avatar { width: 22px; height: 22px; font-size: .72rem; }
   .kdo-hlava { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-bottom: 14px; }
   .kdo-hlava h2 { margin: 0; }
   .razeni { display: inline-flex; padding: 3px; gap: 2px; border-radius: 99px; background: var(--tile); border: 1px solid var(--line); }
@@ -2825,6 +2829,7 @@
       const nazev = el('span', null);
       if (it.tecka) { const t = el('span', 'tecka'); t.style.background = it.tecka; nazev.append(t); }
       if (it.misto) nazev.append(el('span', 'misto' + (it.misto <= 3 ? ' m' + it.misto : ''), it.misto));
+      if (it.av !== undefined) { nazev.classList.add('s-av'); nazev.append(avatar(it.av)); }
       nazev.append(document.createTextNode(it.nazev));
       if (it.archiv) nazev.append(el('span', 'archiv', ' (už není v nabídce)'));
       top.append(nazev, el('span', 'count', it.vpravo !== undefined ? it.vpravo : it.n + (opt.pripona || '')));
@@ -3133,7 +3138,7 @@
     ]));
     let items;
     if (vidiJmena) {
-      items = A.slice().sort((a, b) => b.v - a.v).map((x) => ({ nazev: jmenoNebo(x.o.jmeno), n: Math.abs(x.v), vpravo: fmt(x.v, 4) + (j ? ' ' + j : '') }));
+      items = A.slice().sort((a, b) => b.v - a.v).map((x) => ({ nazev: jmenoNebo(x.o.jmeno), av: x.o.jmeno, n: Math.abs(x.v), vpravo: fmt(x.v, 4) + (j ? ' ' + j : '') }));
     } else {
       const sk = osobyPodle(A, (v) => v);
       items = Object.keys(sk).map(Number).sort((a, b) => b - a).map((v) => ({ nazev: fmt(v, 4) + (j ? ' ' + j : ''), n: sk[v].length, vpravo: sk[v].length + '×' }));
@@ -3258,7 +3263,11 @@
       r.append(top, st);
       if (vidiJmena && cel) {
         const plna = el('div', 'kdo-plna');
-        slIds.forEach((sid) => (kdo[sid] || []).forEach((o) => plna.append(el('span', 'chip', jmenoNebo(o.jmeno) + ': ' + nazevMoznosti(q, sid)))));
+        slIds.forEach((sid) => (kdo[sid] || []).forEach((o) => {
+          const c = el('span', 'chip chip-av');
+          c.append(avatar(o.jmeno), document.createTextNode(jmenoNebo(o.jmeno) + ': ' + nazevMoznosti(q, sid)));
+          plna.append(c);
+        }));
         const kd = el('div', 'kdo');
         kd.append(el('span', 'vic', 'Kdo co'), el('span', 'sip', '▾'));
         r.append(kd, plna);
