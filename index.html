@@ -1229,9 +1229,9 @@
       <section id="p-novy" class="card" hidden>
         <h2>Nový formulář</h2>
         <label class="pole"><span>Název</span><input type="text" id="pn-nazev" maxlength="100" autocomplete="off" placeholder="Např. Vodácký víkend 2026"></label>
-        <label class="pole"><span>Adresa formuláře (část odkazu)</span><input type="text" id="pn-adresa" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="vodacky-vikend-2026"><small id="pn-odkaz"></small></label>
-        <label class="switch"><span class="t">Vstup bez hesla<small>Formulář otevře kdokoli s odkazem.</small></span><input type="checkbox" id="pn-bezhesla"><span class="sw"></span></label>
-        <label class="pole" id="pn-heslo-p"><span>Heslo pro vstup do formuláře</span><input type="text" id="pn-heslo" maxlength="100" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="Aspoň 4 znaky"></label>
+        <label class="pole"><span>Adresa formuláře (část odkazu)</span><input type="text" id="pn-adresa" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="vodacky-vikend-2026-k7m2x9q4w8"><small id="pn-odkaz"></small></label>
+        <label class="switch"><span class="t">Vstup bez hesla<small>Formulář otevře kdokoli s odkazem.</small></span><input type="checkbox" id="pn-bezhesla" checked><span class="sw"></span></label>
+        <label class="pole" id="pn-heslo-p" hidden><span>Heslo pro vstup do formuláře</span><input type="text" id="pn-heslo" maxlength="100" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="Aspoň 4 znaky"></label>
         <div class="pole"><span>Začít z</span><div id="pn-sablony"></div></div>
         <p id="pn-msg" class="msg err" role="status"></p>
         <div class="radek-btn">
@@ -1378,9 +1378,9 @@
           <button type="button" class="btn small" id="ed-odkaz-kopirovat" style="flex:0 0 auto"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Kopírovat</button>
         </div>
         <label class="pole" style="margin:12px 0 0"><span>Adresa formuláře (část odkazu za ?f=)</span>
-          <div class="edit-row" style="margin:0"><input type="text" id="ed-adresa" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="off"><button type="button" class="btn small sec" id="ed-adresa-zmenit" style="flex:0 0 auto">Změnit</button></div>
+          <div class="edit-row" style="margin:0"><input type="text" id="ed-adresa" maxlength="40" autocomplete="off" spellcheck="false" autocapitalize="off"><button type="button" class="ikona" id="ed-adresa-nova" aria-label="Nová náhodná adresa" title="Nová náhodná adresa"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></button><button type="button" class="btn small sec" id="ed-adresa-zmenit" style="flex:0 0 auto">Změnit</button></div>
         </label>
-        <p class="muted pod" style="margin:6px 0 0">Po změně adresy přestanou fungovat dříve rozeslané odkazy.</p>
+        <p class="muted pod" style="margin:6px 0 0">Po změně adresy přestanou fungovat dříve rozeslané odkazy. Tlačítko <svg class="ic" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px"><use href="#i-refresh"/></svg> připraví novou náhodnou adresu (třeba když odkaz unikl) – platit začne až po „Změnit“.</p>
       </div>
 
       <div class="sekce">
@@ -4863,6 +4863,10 @@
     const v = i.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
     if (v !== i.value) i.value = v;
   });
+  $('ed-adresa-nova').addEventListener('click', () => {
+    $('ed-adresa').value = tajnaAdresa(N.nadpis);
+    $('ed-adresa').focus();
+  });
   $('ed-adresa-zmenit').addEventListener('click', async () => {
     const nove = $('ed-adresa').value.trim().toLowerCase();
     if (nove === F) { zprava('admin-msg', 'Adresa je stejná jako teď.'); return; }
@@ -4885,19 +4889,31 @@
   // ==================================================
   let prehledData = [];
   let pnAdresaRucne = false;
+  let pnNahodne = '';       // náhodná část adresy nového formuláře (drží se, dokud se píše název)
   let pnSablona = '';      // id vybrané šablony, '' = prázdný formulář
 
   function slug(text) {
     return String(text || '').toLocaleLowerCase('cs').normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/g, '');
   }
-  // první volná adresa (když je obsazená, přidá -2, -3, …)
-  function volnaAdresa(zaklad) {
-    let z = zaklad && zaklad.length >= 2 ? zaklad : 'formular';
-    const obsazene = new Set(prehledData.map((f) => f.id));
-    let k = z, i = 2;
-    while (obsazene.has(k)) { const pr = '-' + i++; k = z.slice(0, 40 - pr.length).replace(/-+$/g, '') + pr; }
-    return k;
+  // adresa formuláře = název + náhodná písmena a číslice (např. vodacky-vikend-k7m2x9q4w8),
+  // takovou adresu nikdo neuhodne, takže odkaz bez hesla nenajde nikdo, komu ho nepošleš
+  const NAHODNE_ZNAKU = 10;
+  function nahodnaCast() {
+    const abeceda = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let out = '';
+    while (out.length < NAHODNE_ZNAKU) {
+      const b = new Uint8Array(16);
+      window.crypto.getRandomValues(b);
+      // bajty 252–255 se zahodí, ať jsou všechny znaky stejně pravděpodobné
+      b.forEach((x) => { if (x < 252 && out.length < NAHODNE_ZNAKU) out += abeceda[x % 36]; });
+    }
+    return out;
+  }
+  function tajnaAdresa(nazev, cast) {
+    const c = cast || nahodnaCast();
+    const z = slug(nazev).slice(0, 40 - c.length - 1).replace(/-+$/g, '') || 'formular';
+    return z + '-' + c;
   }
 
   async function prehledApi(data) {
@@ -4998,7 +5014,7 @@
   async function duplikujFormular(f) {
     const nazev = prompt('Název kopie (otázky, vzhled i heslo se zkopírují, odpovědi ne):', f.nadpis + ' (kopie)');
     if (nazev === null) return;
-    const id = volnaAdresa(slug(nazev || f.nadpis));
+    const id = tajnaAdresa(nazev || f.nadpis);
     zprava('p-msg', 'Kopíruji…');
     try {
       const r = await prehledApi({ akce: 'admin_duplikuj', f: f.id, id: id, nazev: nazev.trim() });
@@ -5033,11 +5049,12 @@
   }
   function otevriNovy() {
     pnAdresaRucne = false;
+    pnNahodne = nahodnaCast();
     $('pn-nazev').value = '';
     $('pn-adresa').value = '';
     $('pn-heslo').value = '';
-    $('pn-bezhesla').checked = false;
-    $('pn-heslo-p').hidden = false;
+    $('pn-bezhesla').checked = true;   // výchozí: vstup bez hesla (chrání ho náhodná adresa)
+    $('pn-heslo-p').hidden = true;
     zprava('pn-msg', '', true);
     pnSablona = '';
     vykresliPnSablony();
@@ -5049,7 +5066,7 @@
   $('p-novy-btn').addEventListener('click', otevriNovy);
   $('pn-zrusit').addEventListener('click', () => { $('p-novy').hidden = true; });
   $('pn-nazev').addEventListener('input', () => {
-    if (!pnAdresaRucne) $('pn-adresa').value = $('pn-nazev').value.trim() ? volnaAdresa(slug($('pn-nazev').value)) : '';
+    if (!pnAdresaRucne) $('pn-adresa').value = $('pn-nazev').value.trim() ? tajnaAdresa($('pn-nazev').value, pnNahodne) : '';
     nahledAdresy();
   });
   $('pn-adresa').addEventListener('input', () => {
