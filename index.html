@@ -1092,6 +1092,10 @@
   .sab-akce { display: flex; gap: 4px; flex: 0 0 auto; }
   .sab-akce .ikona { background: var(--card); }
   .sab-akce .ikona.del { background: var(--danger-l); }
+  .stav-btn { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ai-box { padding: 12px 12px 2px; margin-bottom: 12px; border-radius: 14px; background: var(--accent-l); }
+  .ai-box textarea { background-color: var(--card); }
+  .ai-box .pozn { margin: 10px 0; font-size: .8rem; }
   .sab-nova { padding: 12px; margin-bottom: 14px; border-radius: 14px; background: var(--accent-l); }
   .sab-nova .lbl { font-size: .86rem; }
   .sab-nova .edit-row { margin-bottom: 6px; }
@@ -1129,6 +1133,7 @@
   <symbol id="i-edit-form" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.38 2.62a2.12 2.12 0 1 1 3 3L12.36 14.64a2 2 0 0 1-.85.5l-2.87.84a.5.5 0 0 1-.62-.62l.84-2.87a2 2 0 0 1 .5-.85Z"/></symbol>
   <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></symbol>
   <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></symbol>
+  <symbol id="i-ai" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0l1.58 6.13a2 2 0 0 0 1.44 1.44l6.13 1.58a.5.5 0 0 1 0 .96l-6.13 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0Z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></symbol>
   <symbol id="i-templates" viewBox="0 0 24 24"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/></symbol>
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></symbol>
   <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5Z"/><path d="m15 5 4 4"/></symbol>
@@ -1350,7 +1355,15 @@
       <div class="sekce">
         <div class="stav" style="margin-bottom:10px">
           <h3 style="margin:0">Otázky</h3>
-          <button type="button" class="btn small sec" id="ed-sablony-btn"><svg class="ic" aria-hidden="true"><use href="#i-templates"/></svg>Šablony</button>
+          <span class="stav-btn">
+            <button type="button" class="btn small sec" id="ed-ai-btn"><svg class="ic" aria-hidden="true"><use href="#i-ai"/></svg>Pomocí AI</button>
+            <button type="button" class="btn small sec" id="ed-sablony-btn"><svg class="ic" aria-hidden="true"><use href="#i-templates"/></svg>Šablony</button>
+          </span>
+        </div>
+        <div id="ed-ai" class="ai-box" hidden>
+          <label class="pole"><span>Popiš, jaký formulář chceš</span><textarea id="ed-ai-popis" maxlength="1500" rows="4" placeholder="Např. Přihláška na vodácký víkend: jestli jede, jak pojede, kolik má volných míst v autě, co veze na společné použití, telefon a poznámka."></textarea></label>
+          <div class="radek-btn" style="margin-top:0"><button type="button" class="btn small" id="ed-ai-vytvor"><svg class="ic" aria-hidden="true"><use href="#i-ai"/></svg>Vytvořit návrh</button></div>
+          <p class="muted pozn">AI připraví otázky jako návrh – v editoru nahradí ty současné, ale uloží se až tlačítkem „Uložit změny“, takže je můžeš nejdřív upravit. Podmínky zobrazení AI nenastavuje. Zdarma zhruba 100 návrhů denně.</p>
         </div>
         <div id="ed-sablony" hidden></div>
         <div id="ed-otazky"></div>
@@ -4437,7 +4450,7 @@
       b.append(ik(TYPY[k].ikona), t);
       box.append(b);
     });
-    $('ed-pridat').addEventListener('click', () => { box.hidden = !box.hidden; $('ed-sablony').hidden = true; });
+    $('ed-pridat').addEventListener('click', () => { box.hidden = !box.hidden; $('ed-sablony').hidden = true; $('ed-ai').hidden = true; });
   })();
 
   // ---------- šablony ----------
@@ -4496,7 +4509,13 @@
   // použití šablony: otázky i možnosti dostanou nová id, ať se nepletou se staršími odpověďmi
   function pouzijSablonu(s) {
     if (navrh.otazky.length && !confirm('Šablona „' + s.nazev + '“ nahradí současné otázky a nadpis. Pokračovat? (Projeví se až po uložení.)')) return;
-    const d = kopie(s);
+    nactiDoEditoru(s);
+    zprava('admin-msg', 'Šablona „' + s.nazev + '“ načtena – uprav ji podle sebe a ulož.');
+  }
+
+  // otázky (ze šablony nebo od AI) dostanou nová id, ať se nepletou se staršími odpověďmi
+  function nactiDoEditoru(zdroj) {
+    const d = kopie(zdroj);
     const noveId = {};   // staré id otázky -> {id, moznosti: {staré id -> nové}}
     const otazky = (d.otazky || []).filter((q) => q && TYPY[q.typ] && q.aktivni !== false).map((q) => {
       delete q.aktivni;
@@ -4519,10 +4538,10 @@
     navrh.otazky = otazky;
     rozbalene.clear();
     $('ed-sablony').hidden = true;
+    $('ed-ai').hidden = true;
     naplnNastaveni();
     vykresliEditor();
     nahledHlavicky();
-    zprava('admin-msg', 'Šablona „' + s.nazev + '“ načtena – uprav ji podle sebe a ulož.');
   }
 
   // jeden řádek šablony – stejný vzhled ve správě formuláře i při zakládání nového
@@ -4641,7 +4660,50 @@
     const box = $('ed-sablony');
     box.hidden = !box.hidden;
     $('ed-typy').hidden = true;
+    $('ed-ai').hidden = true;
     if (!box.hidden) vykresliSablony();
+  });
+
+  // ---------- návrh formuláře pomocí AI ----------
+  $('ed-ai-btn').addEventListener('click', () => {
+    const box = $('ed-ai');
+    box.hidden = !box.hidden;
+    $('ed-sablony').hidden = true;
+    $('ed-typy').hidden = true;
+    if (!box.hidden) $('ed-ai-popis').focus();
+  });
+  $('ed-ai-vytvor').addEventListener('click', async () => {
+    const popis = $('ed-ai-popis').value.trim();
+    if (popis.length < 10) { zprava('admin-msg', 'Popiš formulář aspoň jednou větou.', true); $('ed-ai-popis').focus(); return; }
+    if (navrh.otazky.length && !confirm('Návrh od AI nahradí současné otázky v editoru (uloží se až po „Uložit změny“). Pokračovat?')) return;
+    const tl = $('ed-ai-vytvor');
+    tl.disabled = true;
+    tl.textContent = 'AI přemýšlí… (může to trvat až půl minuty)';
+    zprava('admin-msg', 'AI připravuje návrh formuláře…');
+    try {
+      const r = await adminApi({ akce: 'admin_ai', popis: popis });
+      if (!r.ok) {
+        zprava('admin-msg', r.chyba || 'Návrh se nepovedl.', true);
+        if (r.kod === 'spravce') { admin = null; uloziste.smaz('admin'); nastavAdmina(); }
+        return;
+      }
+      // nadpis, popis a ikonu od AI vezmi jen tam, kde formulář ještě nemá vlastní
+      const n = navrh.nastaveni;
+      const a = r.navrh.nastaveni || {};
+      const nastaveni = {};
+      if (a.nadpis && (!String(n.nadpis || '').trim() || n.nadpis === 'Nový formulář')) nastaveni.nadpis = a.nadpis;
+      if (a.popis && !String(n.popis || '').trim()) nastaveni.popis = a.popis;
+      if (a.ikona && (!n.ikona || n.ikona === '📋')) nastaveni.ikona = a.ikona;
+      nactiDoEditoru({ nastaveni: nastaveni, otazky: r.navrh.otazky });
+      zprava('admin-msg', 'Návrh od AI je v editoru (' + r.navrh.otazky.length + ' ' + pl(r.navrh.otazky.length, 'otázka', 'otázky', 'otázek') + ') – zkontroluj ho, uprav a ulož.');
+    } catch (err) {
+      console.error(err);
+      zprava('admin-msg', 'Nepodařilo se spojit se serverem.', true);
+    } finally {
+      tl.disabled = false;
+      tl.textContent = '';
+      tl.append(ikText('ai', 'Vytvořit návrh'));
+    }
   });
 
   // ---------- uložení ----------
