@@ -759,6 +759,8 @@
   .split .kdy { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
   .split .kdy > div:last-child .kdo { justify-content: flex-end; }
   .split .kdy > div:last-child .kdo-plna { justify-content: flex-end; }
+  .split .kdy > .sum:last-child { grid-column: 2; }      /* „Ne“ zůstane vpravo, i když je „Ano“ rozbalené */
+  .split .kdy > .sum.otevreno { grid-column: 1 / -1; }   /* rozbalená jména přes celou šířku, ne jen půlku */
 
   /* dlaždice s čísly */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 14px; }
@@ -3146,6 +3148,34 @@
     return el('p', 'muted', '');
   }
 
+  // jména pod grafem poskládá co nejtěsněji – pořadí tu nehraje roli: do každého řádku jde vždy
+  // nejdelší jméno, které se ještě vejde, a mezery doplní kratší (méně řádků, žádná prázdná místa)
+  function zhutniJmena(box) {
+    if (!box || !box.offsetParent) return;   // schované – poskládá se při rozbalení
+    const chipy = [...box.children];
+    chipy.forEach((c) => { c.style.order = ''; });
+    if (chipy.length < 3) return;
+    const sirka = box.clientWidth;
+    const mezera = parseFloat(getComputedStyle(box).columnGap) || 6;
+    let zbyva = chipy.map((c) => ({ c: c, w: c.getBoundingClientRect().width })).sort((a, b) => b.w - a.w);
+    let poradi = 0;
+    while (zbyva.length) {
+      let misto = sirka;
+      const radek = [];
+      zbyva = zbyva.filter((x) => {
+        const potreba = x.w + (radek.length ? mezera : 0);
+        if (!radek.length || potreba <= misto + 0.5) { radek.push(x); misto -= potreba; return false; }
+        return true;
+      });
+      radek.forEach((x) => { x.c.style.order = poradi++; });
+    }
+  }
+  let zhutnitCasovac = null;
+  addEventListener('resize', () => {
+    clearTimeout(zhutnitCasovac);
+    zhutnitCasovac = setTimeout(() => document.querySelectorAll('.klik.otevreno .kdo-plna, .col-kdo:not([hidden]) .chips').forEach(zhutniJmena), 150);
+  });
+
   // řádek s avatary těch, kdo danou možnost vybrali; kliknutím se rozbalí jména
   function pridejKdo(radek, osoby) {
     if (!vidiJmena || !osoby || !osoby.length) return;
@@ -3162,7 +3192,7 @@
     radek.tabIndex = 0;
     radek.setAttribute('role', 'button');
     radek.setAttribute('aria-expanded', 'false');
-    const prepni = () => { const o = radek.classList.toggle('otevreno'); radek.setAttribute('aria-expanded', o ? 'true' : 'false'); };
+    const prepni = () => { const o = radek.classList.toggle('otevreno'); radek.setAttribute('aria-expanded', o ? 'true' : 'false'); if (o) zhutniJmena(plna); };
     radek.addEventListener('click', prepni);
     radek.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); prepni(); } });
   }
@@ -3226,6 +3256,7 @@
         ch.append(c);
       });
       panel.append(h, ch);
+      zhutniJmena(ch);
     };
     let klikaci = false;
     items.forEach((it, i) => {
@@ -3635,8 +3666,9 @@
         r.classList.add('klik');
         r.tabIndex = 0;
         r.setAttribute('role', 'button');
-        r.addEventListener('click', () => r.classList.toggle('otevreno'));
-        r.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); r.classList.toggle('otevreno'); } });
+        const prepniR = () => { if (r.classList.toggle('otevreno')) zhutniJmena(plna); };
+        r.addEventListener('click', prepniR);
+        r.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); prepniR(); } });
       }
       w.append(r);
     });
