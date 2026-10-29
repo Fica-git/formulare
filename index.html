@@ -636,7 +636,15 @@
   .res-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
   .res-head h2 { margin: 0; }
   .res-head h2 + .badge { margin-right: auto; }
-  #vysledky-prepnout { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+  .res-akce { display: flex; gap: 6px; margin-left: auto; }
+  #vysledky-prepnout, #vysledky-sdilet { display: inline-flex; align-items: center; gap: 6px; }
+  #vysledky-sdilet[aria-expanded="true"] { background: var(--accent-l); color: var(--accent-d); }
+  .vys-sdileni { margin: 14px 0 0; padding: 12px 12px 4px; border-radius: 14px; background: var(--tile); border: 1px solid var(--line); }
+  .vys-sdileni > b { display: block; font-size: .92rem; }
+  .vys-sdileni > p.muted { margin: 4px 0 10px; font-size: .82rem; }
+  .vys-sdileni .edit-row input { background: var(--card); }
+  .vys-sdileni .radek-btn { margin-bottom: 8px; }
+  .vys-sdileni .msg { margin: 0 0 8px; }
   #vysledky-prepnout .ic { margin: 0; transition: transform .2s; }
   #vysledky-prepnout.otevreno .ic { transform: rotate(180deg); }
   .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 99px; background: var(--accent-l); color: var(--accent-d); font-weight: 700; font-size: .88rem; font-variant-numeric: tabular-nums; }
@@ -1345,7 +1353,13 @@
     <div class="sl-vys">
 
     <section class="card" id="vysledky-head">
-      <div class="res-head"><h2>Výsledky</h2><span id="vysledky-pocet" class="badge" hidden></span><button type="button" class="btn small sec" id="vysledky-prepnout" hidden></button></div>
+      <div class="res-head"><h2>Výsledky</h2><span id="vysledky-pocet" class="badge" hidden></span><span class="res-akce"><button type="button" class="btn small sec" id="vysledky-sdilet" aria-expanded="false" aria-controls="vys-sdileni" hidden><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Sdílet</button><button type="button" class="btn small sec" id="vysledky-prepnout" hidden></button></span></div>
+      <div id="vys-sdileni" class="vys-sdileni" hidden>
+        <b>Odkaz jen na výsledky</b>
+        <p class="muted">Samostatná stránka s výsledky a grafy, bez formuláře – třeba na promítání nebo pro ty, kdo nevyplňují. Kdo odkaz má, uvidí výsledky bez hesla a i při nastavení „Jen správce“. Jména podle nastavení formuláře, skryté otázky se neukazují. Vidíš to jen ty jako správce.</p>
+        <div id="ed-vys-odkaz"></div>
+        <p id="vys-sdileni-msg" class="msg" role="status"></p>
+      </div>
       <div id="souhrn" class="souhrn" hidden></div>
       <p id="vysledky-info" class="muted" style="margin:10px 0 0" hidden></p>
     </section>
@@ -1465,10 +1479,6 @@
         <h3>Výsledky</h3>
         <div class="pole"><span>Kdo vidí výsledky a grafy</span><div id="ed-vysledky"></div></div>
         <label class="switch"><span class="t">Ukazovat jména u výsledků<small>Kdo co vyplnil, avatary u grafů. Vypnuto = anonymní výsledky.</small></span><input type="checkbox" id="ed-jmena"><span class="sw"></span></label>
-        <div class="pole" style="margin:10px 0 0"><span>Odkaz jen na výsledky</span>
-          <p class="muted pod" style="margin:0 0 8px">Samostatná stránka s výsledky a grafy, bez formuláře – třeba na promítání nebo pro ty, kdo nevyplňují. Kdo odkaz má, uvidí výsledky bez hesla a i při nastavení „Jen správce“. Jména podle přepínače výše, skryté otázky se neukazují.</p>
-          <div id="ed-vys-odkaz"></div>
-        </div>
       </div>
 
       <div class="sekce">
@@ -2911,7 +2921,22 @@
     $('app').classList.toggle('dva', nacteno && vidiVse && !sbaleneVysledky() && !JEN_VYSLEDKY);
     vykresliVysledky();
     vykresliKdo();
+    vykresliSdileni();
   }
+
+  // sdílení výsledků – tlačítko „Sdílet“ v panelu Výsledky, jen pro přihlášeného správce
+  function vykresliSdileni() {
+    const smi = !!admin && !JEN_VYSLEDKY && nacteno;
+    $('vysledky-sdilet').hidden = !smi;
+    if (!smi) { $('vys-sdileni').hidden = true; $('vysledky-sdilet').setAttribute('aria-expanded', 'false'); return; }
+    vykresliOdkazVysledku();
+  }
+  $('vysledky-sdilet').addEventListener('click', () => {
+    const p = $('vys-sdileni');
+    p.hidden = !p.hidden;
+    $('vysledky-sdilet').setAttribute('aria-expanded', p.hidden ? 'false' : 'true');
+    if (p.hidden) zprava('vys-sdileni-msg', '');
+  });
 
   // ---------- výsledky ----------
   const karty = new Map(); // qid -> {el, sig}
@@ -4029,7 +4054,22 @@
     if (box.dataset.kod === String(vysledkyToken)) return;   // překreslit jen při změně (ať se neruší označený text)
     box.dataset.kod = String(vysledkyToken);
     box.textContent = '';
-    const akce = (zapnout, hotovo) => adminAkce({ akce: 'admin_vysledky_odkaz', zapnout: zapnout }, hotovo);
+    const akce = async (zapnout, hotovo) => {
+      zprava('vys-sdileni-msg', 'Ukládám…');
+      try {
+        const r = await adminApi({ akce: 'admin_vysledky_odkaz', zapnout: zapnout });
+        if (!r.ok) {
+          zprava('vys-sdileni-msg', r.chyba || 'Něco se nepovedlo.', true);
+          if (r.kod === 'spravce') { admin = null; uloziste.smaz('admin'); nastavAdmina(); vykresli(); }
+          return;
+        }
+        prevezmi(r);
+        zprava('vys-sdileni-msg', hotovo);
+      } catch (err) {
+        console.error(err);
+        zprava('vys-sdileni-msg', 'Nepodařilo se spojit se serverem.', true);
+      }
+    };
     if (!vysledkyToken) {
       const r = el('div', 'radek-btn');
       r.style.marginTop = '0';
@@ -4072,7 +4112,6 @@
     if (!admin || $('admin').hidden) return;
     if (!navrh || (!navrhZmenen() && navrhVerze !== verze)) nactiNavrh();
 
-    vykresliOdkazVysledku();
     $('admin-heslo-info').textContent = hesloZmeneno ? 'Naposledy změněno ' + formatCas(hesloZmeneno) + '.' : (maHeslo ? '' : 'Formulář zatím nemá heslo.');
     $('ed-odkaz').value = odkazNa(F);
     if (document.activeElement !== $('ed-adresa')) $('ed-adresa').value = F;
