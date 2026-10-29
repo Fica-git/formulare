@@ -1363,7 +1363,7 @@
         <div id="ed-ai" class="ai-box" hidden>
           <label class="pole"><span>Popiš, jaký formulář chceš</span><textarea id="ed-ai-popis" maxlength="1500" rows="4" placeholder="Např. Přihláška na vodácký víkend: jestli jede, jak pojede, kolik má volných míst v autě, co veze na společné použití, telefon a poznámka."></textarea></label>
           <div class="radek-btn" style="margin-top:0"><button type="button" class="btn small" id="ed-ai-vytvor"><svg class="ic" aria-hidden="true"><use href="#i-ai"/></svg>Vytvořit návrh</button></div>
-          <p class="muted pozn">AI připraví otázky jako návrh – v editoru nahradí ty současné, ale uloží se až tlačítkem „Uložit změny“, takže je můžeš nejdřív upravit. Podmínky zobrazení AI nenastavuje. Zdarma zhruba 100 návrhů denně.</p>
+          <p class="muted pozn">AI připraví otázky jako návrh – v editoru nahradí ty současné, ale uloží se až tlačítkem „Uložit změny“, takže je můžeš nejdřív upravit. Kde to dává smysl, navrhne i větvení (podmínky zobrazení). Zdarma zhruba 100 návrhů denně.</p>
         </div>
         <div id="ed-sablony" hidden></div>
         <div id="ed-otazky"></div>
@@ -4558,7 +4558,7 @@
       akce.append(tlacitko('ikona mala' + (cls ? ' ' + cls : ''), ik(ikona), (e) => { e.stopPropagation(); fn(); }, popisek));
     });
     const i = el('span', 'i');
-    if (s.prazdna) i.append(ik('edit-form')); else i.textContent = s.ikona || '📋';
+    if (s.prazdna) i.append(ik(s.ikonaSvg || 'edit-form')); else i.textContent = s.ikona || '📋';
     r.append(i, t, akce);
     r.addEventListener('click', moz.klik);
     r.addEventListener('keydown', (e) => { if (e.target === r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); moz.klik(); } });
@@ -4665,6 +4665,11 @@
   });
 
   // ---------- návrh formuláře pomocí AI ----------
+  function popisNavrhuAI(n) {
+    const pocet = n.otazky.filter((q) => q.typ !== 'nadpis').length;
+    const podm = n.otazky.filter((q) => q.podminka).length;
+    return pocet + ' ' + pl(pocet, 'otázka', 'otázky', 'otázek') + (podm ? ', ' + podm + ' s podmínkou zobrazení' : '');
+  }
   $('ed-ai-btn').addEventListener('click', () => {
     const box = $('ed-ai');
     box.hidden = !box.hidden;
@@ -4695,7 +4700,7 @@
       if (a.popis && !String(n.popis || '').trim()) nastaveni.popis = a.popis;
       if (a.ikona && (!n.ikona || n.ikona === '📋')) nastaveni.ikona = a.ikona;
       nactiDoEditoru({ nastaveni: nastaveni, otazky: r.navrh.otazky });
-      zprava('admin-msg', 'Návrh od AI je v editoru (' + r.navrh.otazky.length + ' ' + pl(r.navrh.otazky.length, 'otázka', 'otázky', 'otázek') + ') – zkontroluj ho, uprav a ulož.');
+      zprava('admin-msg', 'Návrh od AI je v editoru (' + popisNavrhuAI(r.navrh) + ') – zkontroluj ho, uprav a ulož.');
     } catch (err) {
       console.error(err);
       zprava('admin-msg', 'Nepodařilo se spojit se serverem.', true);
@@ -4952,7 +4957,9 @@
   let prehledData = [];
   let pnAdresaRucne = false;
   let pnNahodne = '';       // náhodná část adresy nového formuláře (drží se, dokud se píše název)
-  let pnSablona = '';      // id vybrané šablony, '' = prázdný formulář
+  let pnSablona = '';      // id vybrané šablony, '' = prázdný formulář, 'ai' = návrh pomocí AI
+  let pnAiPopis = '';      // zadání pro AI (drží se při překreslení seznamu)
+  let pnAiVysledek = null; // poslední návrh od AI {popis, navrh} – když se formulář nepovede založit, nevolá se AI znovu
 
   function slug(text) {
     return String(text || '').toLocaleLowerCase('cs').normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -5119,6 +5126,8 @@
     $('pn-heslo-p').hidden = true;
     zprava('pn-msg', '', true);
     pnSablona = '';
+    pnAiPopis = '';
+    pnAiVysledek = null;
     vykresliPnSablony();
     nahledAdresy();
     $('p-novy').hidden = false;
@@ -5144,12 +5153,31 @@
     const box = $('pn-sablony');
     box.textContent = '';
     const seznam = seznamSablon();
-    if (pnSablona && !seznam.some((x) => x.id === pnSablona)) pnSablona = '';
+    if (pnSablona && pnSablona !== 'ai' && !seznam.some((x) => x.id === pnSablona)) pnSablona = '';
     box.append(radekSablony({ prazdna: true, nazev: 'Prázdný formulář', popis: 'Bez otázek – vše si nastavíš sám' }, {
       vybrana: pnSablona === '',
       titulek: 'Začít s prázdným formulářem',
       klik: () => { pnSablona = ''; vykresliPnSablony(); }
     }));
+    box.append(radekSablony({ prazdna: true, ikonaSvg: 'ai', nazev: 'Navrhnout pomocí AI', popis: 'Popíšeš, co potřebuješ, AI připraví otázky i větvení' }, {
+      vybrana: pnSablona === 'ai',
+      titulek: 'Nechat otázky navrhnout pomocí AI',
+      klik: () => { pnSablona = 'ai'; vykresliPnSablony(); const t = $('pn-ai-popis'); if (t) t.focus(); }
+    }));
+    if (pnSablona === 'ai') {
+      const ai = el('div', 'ai-box');
+      const l = el('label', 'pole');
+      const t = document.createElement('textarea');
+      t.id = 'pn-ai-popis';
+      t.maxLength = 1500;
+      t.rows = 4;
+      t.placeholder = 'Např. Přihláška na vodácký víkend: jestli jede, jak pojede, kolik má volných míst v autě, co veze na společné použití, telefon a poznámka.';
+      t.value = pnAiPopis;
+      t.addEventListener('input', () => { pnAiPopis = t.value; });
+      l.append(el('span', null, 'Popiš, jaký formulář chceš'), t);
+      ai.append(l, el('p', 'muted pozn', 'Název formuláře můžeš nechat prázdný – vymyslí ho AI. Po vytvoření se otevře editor, kde návrh zkontroluješ a upravíš. Zdarma zhruba 100 návrhů denně.'));
+      box.append(ai);
+    }
     seznam.forEach((s) => {
       box.append(radekSablony(s, {
         vybrana: pnSablona === s.id,
@@ -5194,28 +5222,58 @@
     }
   }
   $('pn-vytvorit').addEventListener('click', async () => {
-    const nazev = $('pn-nazev').value.trim();
-    const id = $('pn-adresa').value.trim();
+    let nazev = $('pn-nazev').value.trim();
+    let id = $('pn-adresa').value.trim();
     const bez = $('pn-bezhesla').checked;
     const h = $('pn-heslo').value;
-    if (!nazev) { zprava('pn-msg', 'Vyplň název formuláře.', true); $('pn-nazev').focus(); return; }
-    if (!ADRESA_RE.test(id)) { zprava('pn-msg', 'Adresa může mít 2–40 znaků: malá písmena bez diakritiky, číslice a pomlčky.', true); $('pn-adresa').focus(); return; }
+    const sAI = pnSablona === 'ai';
+    const zadani = pnAiPopis.trim();
+    if (!nazev && !sAI) { zprava('pn-msg', 'Vyplň název formuláře.', true); $('pn-nazev').focus(); return; }
+    if ((nazev || pnAdresaRucne) && !ADRESA_RE.test(id)) { zprava('pn-msg', 'Adresa může mít 2–40 znaků: malá písmena bez diakritiky, číslice a pomlčky.', true); $('pn-adresa').focus(); return; }
     if (!bez && h.length < 4) { zprava('pn-msg', 'Zadej heslo pro vstup (aspoň 4 znaky), nebo zapni vstup bez hesla.', true); $('pn-heslo').focus(); return; }
     if (!bez && h.trim() !== h) { zprava('pn-msg', 'Heslo nesmí začínat ani končit mezerou.', true); return; }
-    const s = pnSablona ? seznamSablon().find((x) => x.id === pnSablona) : null;
+    if (sAI && zadani.length < 10) { zprava('pn-msg', 'Popiš pro AI aspoň jednou větou, jaký formulář chceš.', true); $('pn-ai-popis').focus(); return; }
+    let s = pnSablona && !sAI ? seznamSablon().find((x) => x.id === pnSablona) : null;
     const tl = $('pn-vytvorit');
     tl.disabled = true;
     zprava('pn-msg', '');
+    let hotovo = false;
     try {
+      if (sAI) {
+        let navrhAI = pnAiVysledek && pnAiVysledek.popis === zadani ? pnAiVysledek.navrh : null;
+        if (!navrhAI) {
+          tl.textContent = 'AI přemýšlí… (může to trvat až půl minuty)';
+          zprava('pn-msg', 'AI připravuje návrh formuláře…');
+          const a = await prehledApi({ akce: 'admin_ai', popis: zadani });
+          if (!a.ok) { zprava('pn-msg', a.chyba || 'Návrh se nepovedl.', true); return; }
+          navrhAI = a.navrh;
+          pnAiVysledek = { popis: zadani, navrh: navrhAI };
+        }
+        // od AI jen popis a ikona (a název, když ho správce nevyplnil); prázdné hodnoty nepřepisují výchozí
+        const n = {};
+        if (navrhAI.nastaveni.popis) n.popis = navrhAI.nastaveni.popis;
+        if (navrhAI.nastaveni.ikona) n.ikona = navrhAI.nastaveni.ikona;
+        s = { nastaveni: n, otazky: navrhAI.otazky };
+        if (!nazev) {
+          nazev = navrhAI.nastaveni.nadpis || 'Nový formulář';
+          $('pn-nazev').value = nazev;
+          if (!pnAdresaRucne) { id = tajnaAdresa(nazev, pnNahodne); $('pn-adresa').value = id; }
+          nahledAdresy();
+        }
+        tl.textContent = 'Zakládám formulář…';
+        zprava('pn-msg', '');
+      }
       const r = await prehledApi({
         akce: 'admin_novy', id: id, nazev: nazev, heslo: bez ? '' : h, bezHesla: bez,
         sablona: s ? { nastaveni: s.nastaveni, otazky: s.otazky } : null
       });
-      if (!r.ok) { zprava('pn-msg', r.chyba || 'Něco se nepovedlo.', true); tl.disabled = false; return; }
+      if (!r.ok) { zprava('pn-msg', r.chyba || 'Něco se nepovedlo.', true); return; }
+      hotovo = true;
       location.href = odkazNa(r.novy) + '#sprava'; // rovnou do úprav nového formuláře
     } catch (e) {
       zprava('pn-msg', 'Nepodařilo se spojit se serverem.', true);
-      tl.disabled = false;
+    } finally {
+      if (!hotovo) { tl.disabled = false; tl.textContent = 'Vytvořit a upravit'; }
     }
   });
 
