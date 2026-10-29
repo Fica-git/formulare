@@ -284,7 +284,42 @@
   .q-nadpis h3::before { content: ""; width: 4px; height: 1.1em; border-radius: 4px; background: linear-gradient(var(--accent), var(--accent-2)); }
   .q-nadpis p { margin: 6px 0 0; color: var(--muted); font-size: .92rem; white-space: pre-line; }
   /* obrázek u nadpisu sekce – celý, bez ořezu, na mobilu přes celou šířku */
-  .q-nadpis .q-obr { display: block; max-width: 100%; max-height: 480px; width: auto; height: auto; margin: 12px auto 0; border-radius: 16px; background: var(--tile); }
+  .q-nadpis .q-obr { display: block; max-width: 100%; max-height: 480px; width: auto; height: auto; margin: 12px auto 0; border-radius: 16px; background: var(--tile); cursor: zoom-in; transition: filter .15s; }
+  .q-nadpis .q-obr:hover { filter: brightness(1.05); }
+  .q-nadpis .q-obr:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  /* zvětšený obrázek přes celou obrazovku */
+  .lightbox {
+    width: 100vw; height: 100dvh; max-width: none; max-height: none;
+    margin: 0; padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+    border: 0; background: transparent; overflow: hidden; cursor: zoom-out;
+  }
+  /* okno jen prolne (transform na okně by „přilepil“ křížek a nápovědu k posouvanému obrázku), obrázek se lehce zvětší */
+  .lightbox[open] { display: grid; place-items: center; animation: lb-vstup .2s ease both; }
+  .lightbox[open] img { animation: lb-obr .2s ease both; }
+  .lightbox::backdrop { background: rgba(5, 14, 20, .88); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .lightbox img {
+    display: block; max-width: 100%; max-height: calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    width: auto; height: auto; border-radius: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+  }
+  .lightbox img.lze-zvetsit { cursor: zoom-in; }
+  /* skutečná velikost – posouvá se prstem / kolečkem */
+  .lightbox.plna { overflow: auto; place-items: start; overscroll-behavior: contain; }
+  .lightbox.plna img { max-width: none; max-height: none; cursor: zoom-out; border-radius: 0; }
+  .lightbox .lb-tip {
+    position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    padding: 6px 12px; border-radius: 99px; background: rgba(0, 0, 0, .55); color: #fff;
+    font-size: .8rem; font-weight: 600; white-space: nowrap; pointer-events: none;
+  }
+  .lightbox .lb-tip:empty { display: none; }
+  .lightbox .lb-zavrit {
+    position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 14px;
+    display: grid; place-items: center; background: rgba(255, 255, 255, .92); color: #0f2a38;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .3); cursor: pointer;
+  }
+  .lightbox .lb-zavrit:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  @keyframes lb-vstup { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes lb-obr { from { transform: scale(.97); } to { transform: none; } }
+  body:has(.lightbox[open]) { overflow: hidden; }
   .obr-editor { margin-top: 12px; }
   .obr-editor .lbl { font-size: .86rem; margin-bottom: 8px; }
   .obr-nahled { display: block; max-width: 100%; max-height: 200px; border-radius: 12px; margin-bottom: 8px; background: var(--card); }
@@ -1465,6 +1500,13 @@
   </section>
   </dialog>
 
+  <!-- ZVĚTŠENÝ OBRÁZEK – klik kamkoli nebo Esc zavře -->
+  <dialog id="obr-dialog" class="lightbox" aria-label="Zvětšený obrázek">
+    <button type="button" class="zavrit lb-zavrit" aria-label="Zavřít"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
+    <img id="obr-velky" alt="">
+    <span class="lb-tip" id="obr-tip"></span>
+  </dialog>
+
 <script>
   // ==================================================
   //  NASTAVENÍ – adresa Cloudflare Workeru
@@ -2235,6 +2277,12 @@
         img.loading = 'lazy';
         img.decoding = 'async';
         img.addEventListener('error', () => img.remove());
+        img.tabIndex = 0;
+        img.setAttribute('role', 'button');
+        img.title = 'Zvětšit obrázek';
+        img.setAttribute('aria-label', 'Zvětšit obrázek' + (q.nazev ? ': ' + q.nazev : ''));
+        img.addEventListener('click', () => zvetsiObrazek(img.src, img.alt));
+        img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); zvetsiObrazek(img.src, img.alt); } });
         blok.append(img);
       }
       return blok;
@@ -3795,6 +3843,50 @@
   // ==================================================
   //  SPRÁVA
   // ==================================================
+  // ---------- zvětšený obrázek (klik na obrázek u nadpisu sekce) ----------
+  const obrDialog = $('obr-dialog');
+  let obrPredtim = null;   // prvek, na který se po zavření vrátí fokus
+  // obrázek se nejdřív přizpůsobí obrazovce; je-li ve skutečnosti větší, klepnutí na něj ukáže
+  // skutečnou velikost (posouvá se prstem) a další klepnutí vrátí zpět; klepnutí vedle nebo × zavře
+  const obrVelky = $('obr-velky');
+  function nastavTipObrazku() {
+    const plna = obrDialog.classList.contains('plna');
+    const lze = plna || obrVelky.naturalWidth > obrVelky.clientWidth + 8 || obrVelky.naturalHeight > obrVelky.clientHeight + 8;
+    obrVelky.classList.toggle('lze-zvetsit', lze && !plna);
+    $('obr-tip').textContent = plna ? 'Klepni na obrázek pro zmenšení' : lze ? 'Klepni na obrázek pro skutečnou velikost' : '';
+  }
+  function zvetsiObrazek(src, alt) {
+    obrPredtim = document.activeElement;
+    obrDialog.classList.remove('plna');
+    $('obr-tip').textContent = '';
+    obrVelky.onload = nastavTipObrazku;
+    obrVelky.src = src;
+    obrVelky.alt = alt || '';
+    if (typeof obrDialog.showModal === 'function') obrDialog.showModal(); else obrDialog.setAttribute('open', '');
+    if (obrVelky.complete) nastavTipObrazku();
+  }
+  function zavriObrazek() {
+    if (typeof obrDialog.close === 'function') obrDialog.close(); else obrDialog.removeAttribute('open');
+  }
+  obrDialog.addEventListener('click', (e) => {
+    if (e.target !== obrVelky || !(obrVelky.classList.contains('lze-zvetsit') || obrDialog.classList.contains('plna'))) { zavriObrazek(); return; }
+    // přepnutí velikosti; místo, kam se klepnulo, zůstane uprostřed obrazovky
+    const r = obrVelky.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    obrDialog.classList.toggle('plna');
+    if (obrDialog.classList.contains('plna')) {
+      obrDialog.scrollLeft = px * obrVelky.offsetWidth - obrDialog.clientWidth / 2;
+      obrDialog.scrollTop = py * obrVelky.offsetHeight - obrDialog.clientHeight / 2;
+    }
+    nastavTipObrazku();
+  });
+  obrDialog.addEventListener('close', () => {
+    obrDialog.classList.remove('plna');
+    obrVelky.removeAttribute('src');
+    if (obrPredtim && obrPredtim.focus) obrPredtim.focus({ preventScroll: true });
+  });
+
   const dialog = $('admin-dialog');
   let navrh = null;          // rozpracovaný formulář {nastaveni, otazky}
   let navrhPuvodni = '';     // jak vypadal při načtení (pro poznání neuložených změn)
