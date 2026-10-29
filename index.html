@@ -75,6 +75,15 @@
   }
   [hidden] { display: none !important; }
 
+  /* stránka jen s výsledky (…?f=adresa&v=kód): bez formuláře, na počítači karty ve dvou sloupcích */
+  body.jen-vysledky .sl-form, body.jen-vysledky #moje-card { display: none !important; }
+  @media (min-width: 1000px) {
+    body.jen-vysledky main { max-width: 1160px; }
+    body.jen-vysledky #vysledky { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; align-items: start; }
+    body.jen-vysledky .hero { padding: 32px 34px; }
+    body.jen-vysledky .hero h1 { font-size: 2.15rem; }
+  }
+
   /* na počítači: formulář vlevo, výsledky vpravo; přehled formulářů ve dvou sloupcích */
   @media (min-width: 1000px) {
     main:has(> #app.dva:not([hidden])), main:has(> #prehled:not([hidden])) { max-width: 1160px; }
@@ -965,7 +974,7 @@
   }
   .p-prazdno { text-align: center; padding: 28px 20px; }
   #pn-odkaz { display: block; margin-top: 2px; font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  #ed-odkaz { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .86rem !important; }
+  #ed-odkaz, #ed-vys-odkaz input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .86rem !important; }
   .gear.prihlasen::after {
     content: ""; position: absolute; top: 3px; right: 3px;
     width: 10px; height: 10px; border-radius: 50%;
@@ -1456,6 +1465,10 @@
         <h3>Výsledky</h3>
         <div class="pole"><span>Kdo vidí výsledky a grafy</span><div id="ed-vysledky"></div></div>
         <label class="switch"><span class="t">Ukazovat jména u výsledků<small>Kdo co vyplnil, avatary u grafů. Vypnuto = anonymní výsledky.</small></span><input type="checkbox" id="ed-jmena"><span class="sw"></span></label>
+        <div class="pole" style="margin:10px 0 0"><span>Odkaz jen na výsledky</span>
+          <p class="muted pod" style="margin:0 0 8px">Samostatná stránka s výsledky a grafy, bez formuláře – třeba na promítání nebo pro ty, kdo nevyplňují. Kdo odkaz má, uvidí výsledky bez hesla a i při nastavení „Jen správce“. Jména podle přepínače výše, skryté otázky se neukazují.</p>
+          <div id="ed-vys-odkaz"></div>
+        </div>
       </div>
 
       <div class="sekce">
@@ -1525,6 +1538,9 @@
   // který formulář: …/?f=adresa; bez ?f= je to přehled formulářů (jen pro správce)
   const F = (new URLSearchParams(location.search).get('f') || '').trim().toLowerCase();
   const PREHLED = !F;
+  // odkaz jen na výsledky: …?f=adresa&v=kód (kód zná jen ten, komu ho správce poslal)
+  const VK = (new URLSearchParams(location.search).get('v') || '').trim().toLowerCase();
+  const JEN_VYSLEDKY = !!F && /^[a-z0-9]{20}$/.test(VK);
   const uvodniStranka = () => location.origin + location.pathname;
   const odkazNa = (id) => uvodniStranka() + '?f=' + encodeURIComponent(id);
   const klic = (k) => k + ':' + F;   // úložiště v prohlížeči zvlášť pro každý formulář
@@ -1719,6 +1735,7 @@
   let timer = null;
   let fronta = Promise.resolve();
   let hesloZmeneno = null;
+  let vysledkyToken = null;   // kód odkazu na výsledky (zná jen správce)
   let maHeslo = true;
   const ZMENA_HESLA = 'Je potřeba zadat (nové) heslo od organizátora.';
   const spatneHeslo = (chyba) => /^Špatné heslo/.test(chyba || '');
@@ -2044,6 +2061,7 @@
     bezHesla = !!N.bezHesla;
     nacteno = true;
     if ('hesloZmeneno' in r) hesloZmeneno = r.hesloZmeneno;
+    if ('vysledkyToken' in r) vysledkyToken = r.vysledkyToken;
     if ('maHeslo' in r) maHeslo = !!r.maHeslo;
     if ('sablony' in r && JSON.stringify(r.sablony) !== JSON.stringify(sablony)) {
       sablony = r.sablony;
@@ -2890,7 +2908,7 @@
       mBox.append(r);
     });
 
-    $('app').classList.toggle('dva', nacteno && vidiVse && !sbaleneVysledky());
+    $('app').classList.toggle('dva', nacteno && vidiVse && !sbaleneVysledky() && !JEN_VYSLEDKY);
     vykresliVysledky();
     vykresliKdo();
   }
@@ -2934,7 +2952,7 @@
   // „Po odeslání“: výsledky jsou sbalené, dokud člověk neodešle vlastní odpověď (otevřít si je může i dřív)
   let rozbalitRucne = null;   // null = podle toho, jestli už odeslal; true / false = sám klikl
   const maVlastniOdpoved = () => odpovedi.some((o) => Object.prototype.hasOwnProperty.call(moje, o.id));
-  const sbalovatVysledky = () => N.vysledky === 'po_odeslani' && !admin && vidiVse && odpovedi.length > 0;
+  const sbalovatVysledky = () => !JEN_VYSLEDKY && N.vysledky === 'po_odeslani' && !admin && vidiVse && odpovedi.length > 0;
   function sbaleneVysledky() {
     if (!sbalovatVysledky()) return false;
     return rozbalitRucne === null ? !maVlastniOdpoved() : !rozbalitRucne;
@@ -4005,10 +4023,56 @@
     zmena();
   }
 
+  const odkazNaVysledky = (kod) => odkazNa(F) + '&v=' + kod;
+  function vykresliOdkazVysledku() {
+    const box = $('ed-vys-odkaz');
+    if (box.dataset.kod === String(vysledkyToken)) return;   // překreslit jen při změně (ať se neruší označený text)
+    box.dataset.kod = String(vysledkyToken);
+    box.textContent = '';
+    const akce = (zapnout, hotovo) => adminAkce({ akce: 'admin_vysledky_odkaz', zapnout: zapnout }, hotovo);
+    if (!vysledkyToken) {
+      const r = el('div', 'radek-btn');
+      r.style.marginTop = '0';
+      r.append(tlacitko('btn small sec', ikText('link', 'Vytvořit odkaz na výsledky'), () => akce(true, 'Odkaz na výsledky vytvořen ✓ Zkopíruj ho a pošli, komu chceš.')));
+      box.append(r);
+      return;
+    }
+    const odkaz = odkazNaVysledky(vysledkyToken);
+    const radek = el('div', 'edit-row');
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.readOnly = true;
+    inp.value = odkaz;
+
+    inp.setAttribute('aria-label', 'Odkaz na výsledky');
+    inp.addEventListener('focus', () => inp.select());
+    const kop = tlacitko('btn small', ikText('copy', 'Kopírovat'), () => kopirujText(odkaz).then((ok) => { if (ok) toast('Odkaz na výsledky zkopírován'); }));
+    kop.style.flex = '0 0 auto';
+    radek.append(inp, kop);
+    const r = el('div', 'radek-btn');
+    r.style.marginTop = '0';
+    const otevrit = el('a', 'btn small sec');
+    otevrit.href = odkaz;
+    otevrit.target = '_blank';
+    otevrit.rel = 'noopener';
+    otevrit.append(ikText('open', 'Otevřít'));
+    r.append(otevrit,
+      tlacitko('btn small sec', ikText('refresh', 'Nový odkaz'), () => {
+        if (!confirm('Vytvořit nový odkaz na výsledky? Dosavadní odkaz přestane fungovat.')) return;
+        akce(true, 'Nový odkaz na výsledky vytvořen ✓ Starý už nefunguje.');
+      }),
+      tlacitko('btn small danger', ikText('x', 'Zrušit odkaz'), () => {
+        if (!confirm('Zrušit odkaz na výsledky? Kdo ho má, už výsledky neuvidí.')) return;
+        akce(false, 'Odkaz na výsledky zrušen ✓');
+      }));
+    box.append(radek, r);
+  }
+
   function vykresliAdmin() {
     if (!admin || $('admin').hidden) return;
     if (!navrh || (!navrhZmenen() && navrhVerze !== verze)) nactiNavrh();
 
+    vykresliOdkazVysledku();
     $('admin-heslo-info').textContent = hesloZmeneno ? 'Naposledy změněno ' + formatCas(hesloZmeneno) + '.' : (maHeslo ? '' : 'Formulář zatím nemá heslo.');
     $('ed-odkaz').value = odkazNa(F);
     if (document.activeElement !== $('ed-adresa')) $('ed-adresa').value = F;
@@ -5538,9 +5602,58 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden && admin && $('p-novy').hidden) nactiPrehled(true); });
   }
 
+  // ---------- stránka jen s výsledky ----------
+  let vysledkyKonec = false;
+  function ukazNeplatneVysledky(text) {
+    vysledkyKonec = true;
+    ['nacitam', 'app'].forEach((id) => { $(id).hidden = true; });
+    $('nenalezen').querySelector('h2').textContent = 'Odkaz na výsledky nefunguje';
+    $('nenalezen').querySelector('p').textContent = text || 'Odkaz je neplatný. Požádej organizátora o nový.';
+    $('nenalezen').hidden = false;
+    vykresliHlavicku({ nadpis: 'Výsledky nejsou k dispozici', ikona: '', popis: '', barva: 'grafit' });
+  }
+  async function nactiVysledky(prvni) {
+    if (vysledkyKonec) return false;
+    try {
+      const r = await volej({ akce: 'vysledky', f: F, v: VK });
+      if (!r.ok) {
+        if (prvni || r.kod === 'vysledky' || r.kod === 'nenalezen') ukazNeplatneVysledky(r.chyba);
+        return false;
+      }
+      N = Object.assign({}, VYCHOZI, r.nastaveni || {});
+      otazky = r.otazky || [];
+      odpovedi = r.odpovedi || [];
+      pocetOdpovedi = typeof r.pocetOdpovedi === 'number' ? r.pocetOdpovedi : odpovedi.length;
+      otevreno = r.otevreno !== false;
+      otevrenoRucne = r.otevrenoRucne !== false;
+      vidiVse = true;
+      vidiJmena = r.vidiJmena !== false;
+      nacteno = true;
+      vykresliHlavicku({ nadpis: N.nadpis, ikona: N.ikona, barva: N.barva, popis: 'Výsledky formuláře · obnovují se samy' });
+      document.title = (N.nadpis || 'Formulář') + ' – výsledky';
+      $('nacitam').hidden = true;
+      $('app').hidden = false;
+      vykresli();
+      return true;
+    } catch (e) {
+      if (prvni) ukazNeplatneVysledky('Nepodařilo se spojit se serverem. Zkus stránku obnovit.');
+      return false;
+    }
+  }
+  async function startVysledky() {
+    document.body.classList.add('jen-vysledky');
+    admin = null;   // ukáže se to, co uvidí každý s odkazem (i když je správce v tomto prohlížeči přihlášený)
+    ['login', 'kopirovat-odkaz', 'admin-otevrit', 'app-domu'].forEach((id) => { $(id).hidden = true; });
+    if (await nactiVysledky(true)) {
+      setInterval(() => { if (!document.hidden) nactiVysledky(false); }, OBNOVA_MS);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) nactiVysledky(false); });
+    }
+  }
+
   // ---------- start ----------
   (async function start() {
     if (PREHLED) { startPrehled(); return; }
+    if (JEN_VYSLEDKY) { startVysledky(); return; }
     $('kopirovat-odkaz').hidden = false;
     document.querySelector('.hero').classList.add('s-odkazem');
     try {
