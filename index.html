@@ -760,8 +760,6 @@
   .split .kdy { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
   .split .kdy > div:last-child .kdo { justify-content: flex-end; }
   .split .kdy > div:last-child .kdo-plna { justify-content: flex-end; }
-  .split .kdy > .sum:last-child { grid-column: 2; }      /* „Ne“ zůstane vpravo, i když je „Ano“ rozbalené */
-  .split .kdy > .sum.otevreno { grid-column: 1 / -1; }   /* rozbalená jména přes celou šířku, ne jen půlku */
 
   /* dlaždice s čísly */
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 14px; }
@@ -841,6 +839,8 @@
   :root { --mx-l: .5; }
   :root[data-theme="dark"] { --mx-l: .8; }
   .chip.mx-chip { color: var(--ink); }
+  .chip.barevny { background: color-mix(in oklab, var(--chip-c) 24%, var(--card)); color: var(--chip-c); }
+  @supports (color: oklch(from red l c h)) { .chip.barevny { color: oklch(from var(--chip-c) var(--mx-l) calc(c * 1.4) h); } }
   .mx-odp { font-weight: 700; }
   .stack i { display: grid; place-items: center; font-style: normal; font-size: .76rem; font-weight: 700; color: #fff; min-width: 0; overflow: hidden; transition: flex-grow .6s cubic-bezier(.2, .8, .2, 1); text-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
 
@@ -3185,7 +3185,14 @@
   });
 
   // řádek s avatary těch, kdo danou možnost vybrali; kliknutím se rozbalí jména
-  function pridejKdo(radek, osoby) {
+  function obarviChip(c, barva) {
+    if (!barva) return c;
+    c.classList.add('barevny');
+    c.style.setProperty('--chip-c', barva);
+    return c;
+  }
+
+  function pridejKdo(radek, osoby, barva) {
     if (!vidiJmena || !osoby || !osoby.length) return;
     const kdo = el('div', 'kdo');
     const avs = el('span', 'avs');
@@ -3194,7 +3201,7 @@
     if (osoby.length > 7) kdo.append(el('span', 'vic', '+' + (osoby.length - 7)));
     kdo.append(sipka());
     const plna = el('div', 'kdo-plna');
-    osoby.forEach((x) => plna.append(el('span', 'chip', jmenoNebo(x.o.jmeno) + (x.n > 1 ? ' ' + x.n + '×' : ''))));
+    osoby.forEach((x) => plna.append(obarviChip(el('span', 'chip', jmenoNebo(x.o.jmeno) + (x.n > 1 ? ' ' + x.n + '×' : '')), barva)));
     radek.append(kdo, plna);
     radek.classList.add('klik');
     radek.tabIndex = 0;
@@ -3227,7 +3234,7 @@
       if (it.barva) fill.style.background = it.barva;
       bar.append(fill);
       r.append(top, bar);
-      pridejKdo(r, it.osoby);
+      pridejKdo(r, it.osoby, it.barva || it.tecka);
       wrap.append(r);
     });
     return wrap;
@@ -3259,7 +3266,7 @@
       h.append(el('span', null, it.nadpis || it.popisek), el('span', null, it.n + ' ' + pl(it.n, 'hlas', 'hlasy', 'hlasů')));
       const ch = el('div', 'chips');
       it.osoby.slice().sort((a, b) => jmenoNebo(a.o.jmeno).localeCompare(jmenoNebo(b.o.jmeno), 'cs')).forEach((x) => {
-        const c = el('span', 'chip');
+        const c = obarviChip(el('span', 'chip'), it.barva);
         c.append(avatar(x.o.jmeno), document.createTextNode(jmenoNebo(x.o.jmeno)));
         ch.append(c);
       });
@@ -3339,7 +3346,7 @@
     });
     const aktivni = aktivniMozn(q.moznosti).map((m) => m.id);
     const ids = aktivni.concat(Object.keys(pocty).filter((id) => aktivni.indexOf(id) < 0));
-    const items = ids.map((id) => ({ nazev: nazevMoznosti(q, id), n: pocty[id] || 0, osoby: kdo[id] || [], archiv: aktivni.indexOf(id) < 0 }));
+    const items = ids.map((id, i) => ({ nazev: nazevMoznosti(q, id), n: pocty[id] || 0, osoby: kdo[id] || [], archiv: aktivni.indexOf(id) < 0, barva: 'var(--k' + ((i % 8) + 1) + ')' }));
 
     if (q.rezim === 'pocet') {
       const w = pruhy(items, { pripona: '×' });
@@ -3375,8 +3382,8 @@
     const nenulove = items.filter((i) => i.n > 0).length;
     const mezera = nenulove > 1 ? 1.6 : 0;
     let posun = 0;
-    items.forEach((it, i) => {
-      it.tecka = 'var(--k' + ((i % 8) + 1) + ')';
+    items.forEach((it) => {
+      it.tecka = it.barva;
       if (!it.n) return;
       const delka = (it.n / soucet) * obvod;
       const c = document.createElementNS(ns, 'circle');
@@ -3396,7 +3403,7 @@
     st.append(el('b', null, celkem), el('small', null, pl(celkem, 'hlas', 'hlasy', 'hlasů')));
     d.append(st);
     const leg = el('div', 'legenda');
-    leg.append(pruhy(items.map((it) => Object.assign({}, it, { barva: it.tecka }))));
+    leg.append(pruhy(items));
     w.append(d, leg);
     return w;
   }
@@ -3418,8 +3425,8 @@
     w.append(pop, pruh);
     if (vidiJmena) {
       const k = el('div', 'kdy');
-      const ka = el('div', 'sum'); pridejKdo(ka, kdo.a);
-      const kn = el('div', 'sum'); pridejKdo(kn, kdo.n);
+      const ka = el('div', 'sum'); pridejKdo(ka, kdo.a, 'var(--pos)');
+      const kn = el('div', 'sum'); pridejKdo(kn, kdo.n, 'var(--neg)');
       k.append(ka, kn);
       w.append(k);
     }
@@ -3491,6 +3498,7 @@
       const os = kdo[i] || [];
       let barva;
       if (nps) barva = i <= 6 ? 'var(--neg)' : i <= 8 ? 'var(--mid)' : 'var(--pos)';
+      else barva = barvaSkaly(q.do > q.od ? (i - q.od) / (q.do - q.od) : 1);
       items.push({ popisek: String(i), nadpis: 'Hodnota ' + i + (i === q.od && q.popisOd ? ' – ' + q.popisOd : i === q.do && q.popisDo ? ' – ' + q.popisDo : ''), osoby: os, n: os.length, barva: barva, title: i + ': ' + os.length + (jmenaTitulek(os) ? ' – ' + jmenaTitulek(os) : '') });
     }
     w.append(sloupce(items));
