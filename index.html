@@ -283,6 +283,15 @@
   .q-nadpis h3 { margin: 0; font-size: 1.15rem; letter-spacing: -.01em; display: flex; gap: 10px; align-items: center; }
   .q-nadpis h3::before { content: ""; width: 4px; height: 1.1em; border-radius: 4px; background: linear-gradient(var(--accent), var(--accent-2)); }
   .q-nadpis p { margin: 6px 0 0; color: var(--muted); font-size: .92rem; white-space: pre-line; }
+  /* obrázek u nadpisu sekce – celý, bez ořezu, na mobilu přes celou šířku */
+  .q-nadpis .q-obr { display: block; max-width: 100%; max-height: 480px; width: auto; height: auto; margin: 12px auto 0; border-radius: 16px; background: var(--tile); }
+  .obr-editor { margin-top: 12px; }
+  .obr-editor .lbl { font-size: .86rem; margin-bottom: 8px; }
+  .obr-nahled { display: block; max-width: 100%; max-height: 200px; border-radius: 12px; margin-bottom: 8px; background: var(--card); }
+  .obr-editor .radek-btn { margin-top: 0; }
+  .obr-editor .radek-btn .btn { flex: 0 0 auto; }
+  .obr-stav { margin: 8px 0 0; font-size: .82rem; }
+  .obr-stav:empty { display: none; }
 
   /* dlaždice jídel s množstvím (jako v původní objednávce) */
   .menus { display: grid; gap: 10px; margin: 0 0 14px; }
@@ -1134,6 +1143,7 @@
   <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></symbol>
   <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></symbol>
   <symbol id="i-ai" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0l1.58 6.13a2 2 0 0 0 1.44 1.44l6.13 1.58a.5.5 0 0 1 0 .96l-6.13 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0Z"/><path d="M20 3v4M22 5h-4M4 17v2M5 18H3"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
   <symbol id="i-templates" viewBox="0 0 24 24"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="5" height="7" x="16" y="14" rx="1"/></symbol>
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></symbol>
   <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5Z"/><path d="m15 5 4 4"/></symbol>
@@ -1864,10 +1874,13 @@
   }
 
   async function volej(telo, zapis) {
+    const obsah = JSON.stringify(telo);  // text/plain → bez preflightu
     const r = await fetch(API_URL, {
       method: 'POST',
-      body: JSON.stringify(telo),  // text/plain → bez preflightu
-      keepalive: !!zapis           // zápis se dokončí i po zavření stránky
+      body: obsah,
+      // zápis se dokončí i po zavření stránky; prohlížeče to ale dovolí jen do 64 kB
+      // (větší je třeba obrázek nebo velký seznam šablon – ty se pošlou normálně)
+      keepalive: !!zapis && obsah.length < 60000
     });
     return await r.json();
   }
@@ -2214,6 +2227,16 @@
       blok.classList.add('q-nadpis');
       blok.append(el('h3', null, q.nazev));
       if (q.popis) blok.append(el('p', null, q.popis));
+      if (q.obrazek) {
+        const img = document.createElement('img');
+        img.className = 'q-obr';
+        img.src = obrazekUrl(q.obrazek);
+        img.alt = q.nazev || '';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.addEventListener('error', () => img.remove());
+        blok.append(img);
+      }
       return blok;
     }
     const head = el('div', 'q-head');
@@ -4032,6 +4055,7 @@
     if (q.typ === 'vyber') return t.nazev + ' · ' + REZIMY[q.rezim].nazev.toLowerCase() + ' · ' + (q.moznosti || []).length + ' ' + pl((q.moznosti || []).length, 'možnost', 'možnosti', 'možností');
     if (q.typ === 'poradi') return t.nazev + ' · ' + (q.moznosti || []).length + ' položek';
     if (q.typ === 'telefon') return t.nazev + ' · +' + stat(q.predvolba || 'CZ').p;
+    if (q.typ === 'nadpis' && q.obrazek) return t.nazev + ' · s obrázkem';
     if (q.typ === 'matice') return t.nazev + ' · ' + (q.moznosti || []).length + ' × ' + (q.sloupce || []).length;
     return t.nazev;
   }
@@ -4249,6 +4273,108 @@
     return box;
   }
 
+  // ---------- obrázek u nadpisu sekce ----------
+  const OBR_MAX = 700 * 1024;   // stejný limit jako na serveru
+  const obrazekUrl = (id) => API_URL.replace(/\/+$/, '') + '/obr/' + id;
+  function chybaObrazku(text) { const e = new Error(text); e.uzivatel = true; return e; }
+  const naBlob = (c, typ, kvalita) => new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(chybaObrazku('Obrázek se nepodařilo zpracovat.'))), typ, kvalita));
+  const naBase64 = (blob) => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(',')[1] || '');
+    r.onerror = () => rej(chybaObrazku('Soubor se nepodařilo načíst.'));
+    r.readAsDataURL(blob);
+  });
+  function nactiPresImg(soubor) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(soubor);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); res(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(chybaObrazku('Obrázek se nepodařilo otevřít.')); };
+      img.src = url;
+    });
+  }
+
+  // zmenší obrázek (max 1600 px, do 700 kB); PNG zkusí zachovat kvůli průhlednosti, jinak JPEG
+  async function pripravObrazek(soubor) {
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(soubor.type)) throw chybaObrazku('Vyber obrázek ve formátu JPG, PNG, WebP nebo GIF.');
+    if (soubor.size > 25 * 1024 * 1024) throw chybaObrazku('Obrázek je moc velký (max 25 MB).');
+    if (soubor.type === 'image/gif') { // animace by se zmenšením ztratila
+      if (soubor.size > OBR_MAX) throw chybaObrazku('GIF je moc velký (max 700 kB) – zmenši ho, nebo použij JPG či PNG.');
+      return { typ: 'image/gif', data: await naBase64(soubor) };
+    }
+    let zdroj;
+    try { zdroj = await createImageBitmap(soubor); } catch (e) { zdroj = await nactiPresImg(soubor); }
+    const kresli = (rozmer, bile) => {
+      const k = Math.min(1, rozmer / Math.max(zdroj.width, zdroj.height));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(zdroj.width * k));
+      c.height = Math.max(1, Math.round(zdroj.height * k));
+      const g = c.getContext('2d');
+      if (bile) { g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); }
+      g.drawImage(zdroj, 0, 0, c.width, c.height);
+      return c;
+    };
+    if (soubor.type === 'image/png') {
+      const b = await naBlob(kresli(1600, false), 'image/png');
+      if (b.size <= OBR_MAX) return { typ: 'image/png', data: await naBase64(b) };
+    }
+    for (let rozmer = 1600; rozmer >= 400; rozmer = Math.round(rozmer * 0.75)) {
+      const c = kresli(rozmer, true);
+      for (const kvalita of [0.85, 0.75, 0.65]) {
+        const b = await naBlob(c, 'image/jpeg', kvalita);
+        if (b.size <= OBR_MAX) return { typ: 'image/jpeg', data: await naBase64(b) };
+      }
+    }
+    throw chybaObrazku('Obrázek se nepodařilo dostatečně zmenšit.');
+  }
+
+  function editorObrazku(q) {
+    const box = el('div', 'obr-editor');
+    box.append(el('span', 'lbl', 'Obrázek pod nadpisem (nepovinný)'));
+    const vstup = document.createElement('input');
+    vstup.type = 'file';
+    vstup.accept = 'image/jpeg,image/png,image/webp,image/gif';
+    vstup.hidden = true;
+    const stav = el('p', 'muted obr-stav');
+    const radek = el('div', 'radek-btn');
+    if (q.obrazek) {
+      const img = document.createElement('img');
+      img.className = 'obr-nahled';
+      img.src = obrazekUrl(q.obrazek);
+      img.alt = '';
+      box.append(img);
+      radek.append(
+        tlacitko('btn small sec', ikText('image', 'Vyměnit'), () => vstup.click()),
+        tlacitko('btn small danger', ikText('trash', 'Odebrat'), () => { delete q.obrazek; prekresliKartu(q); })
+      );
+    } else {
+      radek.append(tlacitko('btn small sec', ikText('image', 'Přidat obrázek'), () => vstup.click()));
+    }
+    vstup.addEventListener('change', async () => {
+      const soubor = vstup.files && vstup.files[0];
+      vstup.value = '';
+      if (!soubor) return;
+      radek.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      stav.textContent = 'Zmenšuji a nahrávám obrázek…';
+      try {
+        const o = await pripravObrazek(soubor);
+        const r = await adminApi({ akce: 'admin_obrazek', typ: o.typ, data: o.data });
+        if (!r.ok) { zprava('admin-msg', r.chyba || 'Obrázek se nepodařilo nahrát.', true); return; }
+        q.obrazek = r.obrazek;
+        prekresliKartu(q);
+        zprava('admin-msg', 'Obrázek nahrán – ve formuláři se ukáže po uložení změn.');
+      } catch (e) {
+        console.error(e);
+        zprava('admin-msg', e && e.uzivatel ? e.message : 'Obrázek se nepodařilo nahrát (spojení se serverem).', true);
+      } finally {
+        stav.textContent = '';
+        radek.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+      }
+    });
+    box.append(radek, stav, vstup);
+    return box;
+  }
+
   function poleText2(popisek, hodnota, max, zmen, placeholder, klic) {
     const l = el('label', 'pole');
     const inp = document.createElement('input');
@@ -4374,6 +4500,7 @@
         break;
       case 'nadpis':
         sub.append(el('p', 'muted', 'Nadpis rozdělí formulář na části. Nemá žádnou odpověď.'));
+        sub.append(editorObrazku(q));
         break;
       case 'smajlik':
         sub.append(el('p', 'muted', 'Pět smajlíků od zamračeného po nadšeného. Ve výsledcích průměr a rozložení.'));
