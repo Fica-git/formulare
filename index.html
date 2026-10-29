@@ -75,13 +75,19 @@
   }
   [hidden] { display: none !important; }
 
-  /* stránka jen s výsledky (…?f=adresa&v=kód): bez formuláře, na počítači karty ve dvou sloupcích */
+  /* stránka jen s výsledky (…?f=adresa&v=kód): bez formuláře; na počítači karty ve 2 sloupcích,
+     na velkém monitoru ve 3, poskládané bez děr („zeď“ – řádky po 1 px, výšky dopočítá rozlozKarty) */
   body.jen-vysledky .sl-form, body.jen-vysledky #moje-card { display: none !important; }
   @media (min-width: 1000px) {
     body.jen-vysledky main { max-width: 1160px; }
-    body.jen-vysledky #vysledky { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; align-items: start; }
+    body.jen-vysledky #vysledky { display: grid; grid-template-columns: repeat(var(--sloupcu, 2), minmax(0, 1fr)); gap: 0 16px; align-items: start; }
+    body.jen-vysledky #vysledky.zednik { grid-auto-rows: 1px; }
+    body.jen-vysledky #vysledky.zednik > .card { margin-bottom: 0; }
     body.jen-vysledky .hero { padding: 32px 34px; }
     body.jen-vysledky .hero h1 { font-size: 2.15rem; }
+  }
+  @media (min-width: 1440px) {
+    body.jen-vysledky main { max-width: 1520px; }
   }
 
   /* na počítači: formulář vlevo, výsledky vpravo; přehled formulářů ve dvou sloupcích */
@@ -2922,7 +2928,43 @@
     vykresliVysledky();
     vykresliKdo();
     vykresliSdileni();
+    if (JEN_VYSLEDKY) planujRozlozeni();
   }
+
+  // ---------- rozložení karet na stránce jen s výsledky („zeď“ bez děr) ----------
+  // každá karta jde do sloupce, který je zrovna nejkratší, a ten si pamatuje – když se karta
+  // zvětší (rozbalená jména, „Zobrazit všech“), karty pod ní se jen posunou a nepřeskakují
+  const MEZERA_KARET = 16;
+  let sloupcuKaret = 0;
+  let planRozlozeni = 0;
+  const sledovaneKarty = new WeakSet();
+  const roKaret = typeof ResizeObserver === 'function' ? new ResizeObserver(() => planujRozlozeni()) : null;
+  function planujRozlozeni() {
+    if (planRozlozeni) return;
+    planRozlozeni = setTimeout(() => { planRozlozeni = 0; rozlozKarty(); }, 0);
+  }
+  function rozlozKarty() {
+    const box = $('vysledky');
+    const karty = [...box.children].filter((k) => !k.hidden);
+    const n = !JEN_VYSLEDKY || box.hidden ? 1 : innerWidth >= 1440 ? 3 : innerWidth >= 1000 ? 2 : 1;
+    if (n !== sloupcuKaret) { karty.forEach((k) => { delete k.dataset.sloupec; }); sloupcuKaret = n; }
+    box.style.setProperty('--sloupcu', n);
+    box.classList.toggle('zednik', n > 1);
+    if (n === 1) { karty.forEach((k) => { k.style.gridColumn = ''; k.style.gridRow = ''; }); return; }
+    const vysky = new Array(n).fill(0);
+    karty.forEach((k) => {
+      if (roKaret && !sledovaneKarty.has(k)) { roKaret.observe(k); sledovaneKarty.add(k); }
+      let c = Number(k.dataset.sloupec);
+      if (!(c >= 0 && c < n)) { c = vysky.indexOf(Math.min(...vysky)); k.dataset.sloupec = c; }
+      const h = Math.ceil(k.offsetHeight) + MEZERA_KARET;
+      k.style.gridColumn = String(c + 1);
+      k.style.gridRow = (vysky[c] + 1) + ' / span ' + h;
+      vysky[c] += h;
+    });
+  }
+  addEventListener('resize', () => { if (JEN_VYSLEDKY) planujRozlozeni(); });
+  // pojistka vedle ResizeObserveru: rozbalení jmen / „Zobrazit všech“ mění výšku karty po kliknutí
+  ['click', 'keydown'].forEach((t) => $('vysledky').addEventListener(t, () => { if (JEN_VYSLEDKY) planujRozlozeni(); }));
 
   // sdílení výsledků – tlačítko „Sdílet“ v panelu Výsledky, jen pro přihlášeného správce
   function vykresliSdileni() {
